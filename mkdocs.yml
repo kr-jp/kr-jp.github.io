@@ -1,0 +1,30 @@
+site_name: Seo Mincheol
+theme:
+  name: material
+  language: ja
+  features:
+    - navigation.tabs
+    - navigation.top
+    - navigation.sections 
+    - navigation.instant
+    - search.suggest
+    - search.highlight
+plugins:
+  - search
+
+nav:
+  - 取扱説明書: index.md
+  - 言語学特講:
+    - シラバス: 01-special-lecture-on-linguistics/index.md
+    - 言語研究: 01-special-lecture-on-linguistics/01-language-research.md
+    - コーパス: 01-special-lecture-on-linguistics/02-corpus.md
+    - AI: 01-special-lecture-on-linguistics/03-ai.md
+    - 形態素解析: 01-special-lecture-on-linguistics/04-pos.md
+    - 言葉の調査: 01-special-lecture-on-linguistics/05-corpus-analysis.md
+    - 正規表現: 01-special-lecture-on-linguistics/06-regular-expressions.md
+    - 資料収集: 01-special-lecture-on-linguistics/07-data-collection.md
+    - コーパスの作成: 01-special-lecture-on-linguistics/08-corpus-building.md
+    - Colab: 01-special-lecture-on-linguistics/09-colab.md
+    - 参考文献: 01-special-lecture-on-linguistics/10-references.md
+  - 言語研究のためのLLM:
+    - 目次: 02-llm/index.md
