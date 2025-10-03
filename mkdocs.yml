@@ -16,9 +16,9 @@ plugins:
   - bibtex:
       bib_file: "bib/references.bib"
       csl_file: "styles/japanese.csl"
-      bib_reference_style: "author_year"
-      bib_by_default: true
-      cite_inline: true
+      # bib_reference_style: "author_year"
+      # bib_by_default: true
+      # cite_inline: true
 
 markdown_extensions:
   - attr_list
