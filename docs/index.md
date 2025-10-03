@@ -1,20 +1,14 @@
 # ここは何？
-このウェブサイトについて、簡単に紹介します。
+主に言語学と言語資源についての情報をまとめているブログです。
 
 ## 誰が書いているの？
-안녕하세요?（おはようございます／こんにちは／こんばんは）
+愛媛大学で言語学と<a href="https://korean-ehime-u.com/" target="_blank">韓国語</a>を教えながら、研究と勉強をしている者です。
 
-2023年度から、愛媛大学で言語学を教えながら、<a href="https://researchmap.jp/jp-kr" target="_blank">研究</a>と勉強をしています。
+詳細は<a href="https://researchmap.jp/jp-kr" target="_blank">researchmap</a>をご確認ください。
 
 
 ## 何が書いてあるの？
-
-ここでは、言語学特講という授業で使う授業資料と、研究の成果の一部を公開しています。
-
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+2025年10月1日現在は、愛媛大学の言語学特講という授業で使用している授業資料を公開しています。
 
 ## その他
-お問い合わせは、シラバスにあるメールアドレスをご確認ください。
+お問い合わせは、<a href="https://campus.ehime-u.ac.jp/Portal/Public/Syllabus/SyllabusSearchStart.aspx?lct_year=2025&lct_cd=C15541&je_cd=1" target="_blank">シラバス</a>にあるメールアドレスをご確認ください。

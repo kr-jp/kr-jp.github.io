@@ -9,22 +9,50 @@ theme:
     - navigation.instant
     - search.suggest
     - search.highlight
+
 plugins:
   - search
+  - glightbox
+  - bibtex:
+      bib_file: "bib/references.bib"
+      csl_file: "styles/japanese.csl"
+      bib_reference_style: "author_year"
+      bib_by_default: true
+      cite_inline: true
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - pymdownx.tasklist:
+      custom_checkbox: true
+      clickable_checkbox: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - footnotes
+
+extra_javascript:
+  - https://unpkg.com/mermaid/dist/mermaid.min.js
 
 nav:
   - 取扱説明書: index.md
   - 言語学特講:
-    - シラバス: 01-special-lecture-on-linguistics/index.md
-    - 言語研究: 01-special-lecture-on-linguistics/01-language-research.md
-    - コーパス: 01-special-lecture-on-linguistics/02-corpus.md
-    - AI: 01-special-lecture-on-linguistics/03-ai.md
-    - 形態素解析: 01-special-lecture-on-linguistics/04-pos.md
-    - 言葉の調査: 01-special-lecture-on-linguistics/05-corpus-analysis.md
-    - 正規表現: 01-special-lecture-on-linguistics/06-regular-expressions.md
-    - 資料収集: 01-special-lecture-on-linguistics/07-data-collection.md
-    - コーパスの作成: 01-special-lecture-on-linguistics/08-corpus-building.md
-    - Colab: 01-special-lecture-on-linguistics/09-colab.md
-    - 参考文献: 01-special-lecture-on-linguistics/10-references.md
+    - まえがき: 01-special-lecture-on-linguistics/00-index.md
+    - 言語研究の技法: 01-special-lecture-on-linguistics/01-language-research.md
+    - コーパスの種類: 01-special-lecture-on-linguistics/02-corpus.md
+    - 言語研究とAI: 01-special-lecture-on-linguistics/03-ai.md
+    - 形態素と形態素解析: 01-special-lecture-on-linguistics/04-pos.md
+    - NLBとNLT: 01-special-lecture-on-linguistics/05-nlb-nlt.md
+    - 中納言: 01-special-lecture-on-linguistics/06-chunagon.md
+    - 正規表現: 01-special-lecture-on-linguistics/07-regular-expressions.md
+    - 資料収集: 01-special-lecture-on-linguistics/08-data-collection.md
+    - コーパスの構築: 01-special-lecture-on-linguistics/09-corpus-building.md
+    - Colabの活用: 01-special-lecture-on-linguistics/10-colab.md
   - 言語研究のためのLLM:
     - 目次: 02-llm/index.md
