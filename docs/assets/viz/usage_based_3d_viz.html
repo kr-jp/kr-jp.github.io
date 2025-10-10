@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usage-based Learning 3D</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Yu Gothic', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .title-section {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            color: white;
+            pointer-events: auto;
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: rgba(255,255,255,0.8);
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        
+        .info-panel {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-65%);
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 18px 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            gap: 20px;
+            pointer-events: auto;
+            min-height: 95px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(102, 126, 234, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 5px;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+            align-items: center;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+            background: rgba(102, 126, 234, 0.8);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            white-space: nowrap;
+        }
+        
+        button:hover {
+            background: rgba(118, 75, 162, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: rgba(240, 147, 251, 0.5);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+        }
+        
+        .phase-buttons {
+            display: flex;
+            gap: 10px;
+            padding-left: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .phase-btn {
+            padding: 10px 20px;
+            font-size: 13px;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 25px;
+            right: 110px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 18px 25px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            pointer-events: auto;
+            min-height: 95px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        
+        .phase-indicator {
+            position: absolute;
+            top: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            pointer-events: auto;
+            color: white;
+            text-align: center;
+            min-width: 600px;
+            max-width: 750px;
+            transition: all 0.4s ease;
+        }
+        
+        .phase-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #f093fb;
+            transition: color 0.3s ease;
+        }
+        
+        .phase-desc {
+            font-size: 14px;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.85);
+        }
+        
+        @keyframes phaseChange {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+        
+        .phase-indicator.changing {
+            animation: phaseChange 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="overlay">
+        <div class="title-section">
+            <h1>データに基づくパターン学習</h1>
+        </div>
+        
+        <div class="phase-indicator" id="phaseIndicator">
+            <div class="phase-title" id="phaseTitle">第1段階：限られたデータ</div>
+            <div class="phase-desc" id="phaseDesc">
+                従来の言語研究では、限られたデータに依存していました
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #667eea;"></div>
+                <span>言語データ</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f093fb;"></div>
+                <span>パターン</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #ffa751, #ffe259);"></div>
+                <span>言語モデル</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="pauseBtn" onclick="toggleAnimation()">一時停止</button>
+            <button onclick="resetVisualization()">リセット</button>
+            <div class="phase-buttons">
+                <button class="phase-btn active" id="phase1Btn" onclick="setPhase(1)">第1段階</button>
+                <button class="phase-btn" id="phase2Btn" onclick="setPhase(2)">第2段階</button>
+                <button class="phase-btn" id="phase3Btn" onclick="setPhase(3)">第3段階</button>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="stat">
+                <div class="stat-number" id="dataCount">0</div>
+                <div class="stat-label">処理データ数</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="patternCount">0</div>
+                <div class="stat-label">パターン数</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="complexityLevel">1</div>
+                <div class="stat-label">モデル複雑度</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, sceneGroup;
+        let centerSphere, particles = [], connections = [];
+        let patternLayers = []; // パターンレイヤーの配列
+        let isAnimating = true;
+        let dataProcessed = 0, patternsFormed = 0, modelComplexity = 1;
+        let isDragging = false, previousMouseX = 0, previousMouseY = 0;
+        let rotationX = 0, rotationY = 0;
+        
+        // Learning phases
+        const PHASE_1_START = 0;
+        const PHASE_2_START = 25;
+        const PHASE_3_START = 75;
+        const MAX_DATA = 150;
+        
+        let currentPhase = 1;
+        let particleSpawnRate = 1500;
+        let lastSpawnTime = 0;
+        let manualPhase = false;
+        
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x0f0c29, 0.002);
+            
+            // Create a group for rotation
+            sceneGroup = new THREE.Group();
+            scene.add(sceneGroup);
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 50);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x0f0c29, 1);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Central sphere
+            const sphereGeometry = new THREE.SphereGeometry(5, 32, 32);
+            const sphereMaterial = new THREE.MeshPhongMaterial({
+                color: 0xffa751,
+                emissive: 0xffb347,
+                emissiveIntensity: 0.4,
+                shininess: 100,
+                transparent: true,
+                opacity: 0.9
+            });
+            centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            sceneGroup.add(centerSphere);
+            
+            // Inner glow sphere
+            const glowGeometry = new THREE.SphereGeometry(5.5, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffe259,
+                transparent: true,
+                opacity: 0.3
+            });
+            const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+            centerSphere.add(glowSphere);
+            
+            // パターンレイヤーを作成（3層）
+            createPatternLayers();
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+            
+            const pointLight1 = new THREE.PointLight(0x667eea, 1, 100);
+            pointLight1.position.set(20, 20, 20);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0xf093fb, 1, 100);
+            pointLight2.position.set(-20, -20, 20);
+            scene.add(pointLight2);
+            
+            const pointLight3 = new THREE.PointLight(0xffa751, 0.8, 80);
+            pointLight3.position.set(0, 0, 30);
+            scene.add(pointLight3);
+            
+            // Create initial particles
+            for (let i = 0; i < 10; i++) {
+                createParticle();
+            }
+            
+            // Mouse controls
+            renderer.domElement.addEventListener('mousedown', onMouseDown);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('mouseup', onMouseUp);
+            renderer.domElement.addEventListener('mouseleave', onMouseUp);
+            renderer.domElement.addEventListener('wheel', onWheel);
+            
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            animate();
+        }
+        
+        function createPatternLayers() {
+            // 既存のパターンレイヤーを削除
+            patternLayers.forEach(layer => centerSphere.remove(layer));
+            patternLayers = [];
+            
+            // 段階に応じたセグメント数を決定
+            const baseSegments = 8; // 第1段階: 粗いパターン
+            const segmentMultiplier = Math.max(1, modelComplexity);
+            const segments = Math.min(baseSegments + segmentMultiplier * 2, 32); // 最大32
+            
+            // 3層のパターンを作成
+            for (let i = 0; i < 3; i++) {
+                const radius = 6 + i * 0.5;
+                const opacity = 0.15 - i * 0.03;
+                
+                const patternGeometry = new THREE.SphereGeometry(radius, segments, segments);
+                const patternMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xf093fb, // ピンク色（パターンの色）
+                    transparent: true,
+                    opacity: opacity,
+                    wireframe: true,
+                    wireframeLinewidth: 1
+                });
+                
+                const patternMesh = new THREE.Mesh(patternGeometry, patternMaterial);
+                patternMesh.userData.rotationSpeed = 0.001 + i * 0.0005;
+                centerSphere.add(patternMesh);
+                patternLayers.push(patternMesh);
+            }
+        }
+        
+        function updatePatternLayers() {
+            // パターンの精密度を更新
+            patternLayers.forEach(layer => centerSphere.remove(layer));
+            patternLayers = [];
+            createPatternLayers();
+        }
+        
+        function updatePhase() {
+            if (manualPhase) return;
+            
+            if (dataProcessed >= PHASE_3_START && currentPhase < 3) {
+                applyPhase(3, false);
+            } else if (dataProcessed >= PHASE_2_START && currentPhase < 2) {
+                applyPhase(2, false);
+            }
+        }
+        
+        function setPhase(phase) {
+            manualPhase = true;
+            applyPhase(phase, true);
+            
+            // Update button states
+            document.querySelectorAll('.phase-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`phase${phase}Btn`).classList.add('active');
+        }
+        
+        function applyPhase(phase, resetData = false) {
+            currentPhase = phase;
+            
+            // Add animation to phase indicator
+            const indicator = document.getElementById('phaseIndicator');
+            indicator.classList.add('changing');
+            setTimeout(() => indicator.classList.remove('changing'), 500);
+            
+            if (resetData) {
+                // Clear existing particles
+                particles.forEach(p => sceneGroup.remove(p));
+                particles = [];
+                connections.forEach(c => sceneGroup.remove(c.line));
+                connections = [];
+                
+                // Set data count to phase start
+                if (phase === 1) {
+                    dataProcessed = PHASE_1_START;
+                } else if (phase === 2) {
+                    dataProcessed = PHASE_2_START;
+                } else if (phase === 3) {
+                    dataProcessed = PHASE_3_START;
+                }
+                
+                // Update stats based on new data count
+                patternsFormed = Math.floor(dataProcessed / 8);
+                modelComplexity = Math.floor(dataProcessed / 15) + 1;
+                
+                // Update sphere scale and patterns
+                const scale = 1 + (modelComplexity * 0.04);
+                centerSphere.scale.set(scale, scale, scale);
+                updatePatternLayers();
+                
+                updateStats();
+                
+                // Create initial particles for this phase
+                for (let i = 0; i < 10; i++) {
+                    createParticle();
+                }
+            }
+            
+            if (phase === 1) {
+                particleSpawnRate = 1500;
+                document.getElementById('phaseTitle').textContent = '第1段階：限られたデータ';
+                document.getElementById('phaseDesc').innerHTML = 
+                    '従来の言語研究では、限られたデータに依存していました。';
+            } else if (phase === 2) {
+                particleSpawnRate = 600;
+                document.getElementById('phaseTitle').textContent = '第2段階：データの拡大';
+                document.getElementById('phaseDesc').innerHTML = 
+                    'コンピュータの発達に伴い、多くのデータを分析することが可能になりました。';
+            } else if (phase === 3) {
+                particleSpawnRate = 250;
+                document.getElementById('phaseTitle').textContent = '第3段階：超大規模コーパス';
+                document.getElementById('phaseDesc').innerHTML = 
+                    '現在は超大規模コーパスを用いて、言語の「生きた姿」を捉えようとしています。';
+            }
+            
+            // Update button states if automatic phase change
+            if (!resetData) {
+                document.querySelectorAll('.phase-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(`phase${phase}Btn`).classList.add('active');
+            }
+        }
+        
+        function createParticle() {
+            if (dataProcessed >= MAX_DATA) return;
+            
+            const angle = Math.random() * Math.PI * 2;
+            const height = (Math.random() - 0.5) * 60;
+            const radius = 40 + Math.random() * 20;
+            
+            const x = Math.cos(angle) * radius;
+            const y = height;
+            const z = Math.sin(angle) * radius;
+            
+            const geometry = new THREE.SphereGeometry(0.3, 8, 8);
+            
+            // Color: 青系のみ（言語データ）
+            const color = 0x667eea;
+            
+            const material = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0
+            });
+            
+            const particle = new THREE.Mesh(geometry, material);
+            particle.position.set(x, y, z);
+            
+            particle.userData = {
+                targetX: 0,
+                targetY: 0,
+                targetZ: 0,
+                speed: 0.015 + Math.random() * 0.025,
+                life: 1.0,
+                fadeIn: true
+            };
+            
+            sceneGroup.add(particle);
+            particles.push(particle);
+            
+            // Create connection line
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0
+            });
+            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                particle.position,
+                new THREE.Vector3(0, 0, 0)
+            ]);
+            const line = new THREE.Line(lineGeometry, lineMaterial);
+            sceneGroup.add(line);
+            connections.push({ line, particle });
+        }
+        
+        function animate() {
+            if (!isAnimating) return;
+            requestAnimationFrame(animate);
+            
+            const currentTime = Date.now();
+            
+            // Spawn new particles based on phase
+            if (currentTime - lastSpawnTime > particleSpawnRate && dataProcessed < MAX_DATA) {
+                const count = currentPhase === 1 ? 1 : currentPhase === 2 ? 2 : 3;
+                for (let i = 0; i < count; i++) {
+                    createParticle();
+                }
+                lastSpawnTime = currentTime;
+            }
+            
+            // Apply rotation from mouse drag
+            sceneGroup.rotation.y = rotationY;
+            sceneGroup.rotation.x = rotationX;
+            
+            // Rotate center sphere
+            centerSphere.rotation.y += 0.005;
+            centerSphere.rotation.x = Math.sin(Date.now() * 0.0005) * 0.2;
+            
+            // Rotate pattern layers
+            patternLayers.forEach((layer, index) => {
+                layer.rotation.y += layer.userData.rotationSpeed;
+                layer.rotation.x += layer.userData.rotationSpeed * 0.5;
+            });
+            
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                const data = particle.userData;
+                
+                // Fade in effect
+                if (data.fadeIn && particle.material.opacity < 0.8) {
+                    particle.material.opacity += 0.05;
+                    if (particle.material.opacity >= 0.8) {
+                        data.fadeIn = false;
+                    }
+                }
+                
+                // Move towards center
+                particle.position.x += (data.targetX - particle.position.x) * data.speed;
+                particle.position.y += (data.targetY - particle.position.y) * data.speed;
+                particle.position.z += (data.targetZ - particle.position.z) * data.speed;
+                
+                // Fade out as it approaches center
+                const distance = particle.position.length();
+                if (!data.fadeIn) {
+                    particle.material.opacity = Math.min(distance / 30, 0.8);
+                }
+                
+                // Remove when close to center
+                if (distance < 6) {
+                    sceneGroup.remove(particle);
+                    particles.splice(i, 1);
+                    dataProcessed++;
+                    
+                    if (dataProcessed % 8 === 0) {
+                        patternsFormed++;
+                        const oldComplexity = modelComplexity;
+                        modelComplexity = Math.floor(dataProcessed / 15) + 1;
+                        
+                        // パターンが変化した場合、レイヤーを更新
+                        if (modelComplexity !== oldComplexity) {
+                            updatePatternLayers();
+                        }
+                        
+                        // Scale up center sphere slightly
+                        const scale = 1 + (modelComplexity * 0.04);
+                        centerSphere.scale.set(scale, scale, scale);
+                    }
+                    
+                    updateStats();
+                    updatePhase();
+                }
+            }
+            
+            // Update connections
+            connections.forEach(({ line, particle }, index) => {
+                if (!particles.includes(particle)) {
+                    sceneGroup.remove(line);
+                    connections.splice(index, 1);
+                } else {
+                    const positions = line.geometry.attributes.position.array;
+                    positions[0] = particle.position.x;
+                    positions[1] = particle.position.y;
+                    positions[2] = particle.position.z;
+                    line.geometry.attributes.position.needsUpdate = true;
+                    
+                    const distance = particle.position.length();
+                    line.material.opacity = Math.min(distance / 50, particle.material.opacity * 0.4);
+                }
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        function updateStats() {
+            document.getElementById('dataCount').textContent = dataProcessed;
+            document.getElementById('patternCount').textContent = patternsFormed;
+            document.getElementById('complexityLevel').textContent = modelComplexity;
+        }
+        
+        function onMouseDown(event) {
+            isDragging = true;
+            previousMouseX = event.clientX;
+            previousMouseY = event.clientY;
+        }
+        
+        function onMouseMove(event) {
+            if (isDragging) {
+                const deltaX = event.clientX - previousMouseX;
+                const deltaY = event.clientY - previousMouseY;
+                
+                rotationY += deltaX * 0.01;
+                rotationX += deltaY * 0.01;
+                
+                rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX));
+                
+                previousMouseX = event.clientX;
+                previousMouseY = event.clientY;
+            }
+        }
+        
+        function onMouseUp() {
+            isDragging = false;
+        }
+        
+        function onWheel(event) {
+            event.preventDefault();
+            camera.position.z += event.deltaY * 0.05;
+            camera.position.z = Math.max(20, Math.min(100, camera.position.z));
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function toggleAnimation() {
+            isAnimating = !isAnimating;
+            const btn = document.getElementById('pauseBtn');
+            if (isAnimating) {
+                animate();
+                btn.textContent = '一時停止';
+            } else {
+                btn.textContent = '再生';
+            }
+        }
+        
+        function resetVisualization() {
+            // Remove all particles
+            particles.forEach(p => sceneGroup.remove(p));
+            particles = [];
+            connections.forEach(c => sceneGroup.remove(c.line));
+            connections = [];
+            
+            // Reset stats
+            dataProcessed = 0;
+            patternsFormed = 0;
+            modelComplexity = 1;
+            currentPhase = 1;
+            particleSpawnRate = 1500;
+            lastSpawnTime = 0;
+            manualPhase = false;
+            updateStats();
+            
+            // Reset phase display and buttons
+            applyPhase(1, false);
+            document.querySelectorAll('.phase-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('phase1Btn').classList.add('active');
+            
+            // Reset sphere scale and patterns
+            centerSphere.scale.set(1, 1, 1);
+            updatePatternLayers();
+            
+            // Create initial particles
+            for (let i = 0; i < 10; i++) {
+                createParticle();
+            }
+            
+            // Restart animation if needed
+            if (!isAnimating) {
+                isAnimating = true;
+                document.getElementById('pauseBtn').textContent = '一時停止';
+                animate();
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>
