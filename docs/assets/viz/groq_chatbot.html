@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
+            padding: 8px;
+            background: transparent;
+            min-height: 100vh;
+        }
+        
+        #chat-container {
+            width: 100%;
+            max-width: 100%;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 16px);
+            min-height: 600px;
+        }
+        
+        #chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 20px;
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            gap: 12px;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .api-key-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #api-key-input {
+            padding: 6px 12px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            font-size: 13px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            outline: none;
+            width: 200px;
+            transition: all 0.2s;
+        }
+        
+        #api-key-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+        
+        #api-key-input:focus {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+        }
+        
+        #save-api-key-btn {
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        
+        #save-api-key-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .api-status {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+        
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f8f9fa;
+            min-height: 0;
+        }
+        
+        .message {
+            margin-bottom: 16px;
+            display: flex;
+            gap: 8px;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message-user {
+            justify-content: flex-end;
+        }
+        
+        .message-content {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            line-height: 1.6;
+            font-size: 14px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
+        .message-user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message-bot .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e1e4e8;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message-error .message-content {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .message-warning .message-content {
+            background: #ffe5e5;
+            color: #c53030;
+            border: 1px solid #fc8181;
+        }
+        
+        #input-area {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: white;
+            border-top: 1px solid #e1e4e8;
+            flex-shrink: 0;
+        }
+        
+        #user-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            resize: none;
+            font-family: inherit;
+            max-height: 120px;
+        }
+        
+        #user-input:focus {
+            border-color: #667eea;
+        }
+        
+        #send-btn {
+            padding: 10px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+            white-space: nowrap;
+            align-self: flex-end;
+        }
+        
+        #send-btn:hover:not(:disabled) {
+            background: #5568d3;
+        }
+        
+        #send-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e1e4e8;
+            width: fit-content;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #cbd5e0;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        #messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        #messages::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+        
+        #messages::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            #chat-container {
+                border-radius: 0;
+                height: 100vh;
+            }
+            
+            body {
+                padding: 0;
+            }
+            
+            .message-content {
+                max-width: 90%;
+            }
+            
+            #chat-header {
+                flex-wrap: wrap;
+            }
+            
+            #api-key-input {
+                width: 150px;
+                font-size: 12px;
+            }
+            
+            #save-api-key-btn {
+                padding: 5px 10px;
+            }
+        }
+        
+        @media (min-width: 1200px) {
+            #chat-container {
+                max-width: 1000px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-header">
+            <div class="header-left">
+                <span>🤥</span>
+                <span>虚言症強めのAI</span>
+            </div>
+            <div class="api-key-section">
+                <input type="password" id="api-key-input" placeholder="APIキーを入力">
+                <button id="save-api-key-btn" onclick="saveApiKey()">保存</button>
+                <span class="api-status" id="api-status"></span>
+            </div>
+        </div>
+        <div id="messages">
+            <div class="message message-warning">
+                <div class="message-content">APIキーを入力してください。</div>
+            </div>
+        </div>
+        <div id="input-area">
+            <textarea id="user-input" placeholder="メッセージを入力してください..." rows="1"></textarea>
+            <button id="send-btn" onclick="sendMessage()">送信</button>
+        </div>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const inputField = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const apiStatus = document.getElementById('api-status');
+        
+        let conversationHistory = [];
+        let API_KEY = '';
+        
+        // ページ読み込み時にAPIキーを復元
+        window.addEventListener('load', () => {
+            const savedKey = localStorage.getItem('groq_api_key');
+            if (savedKey) {
+                API_KEY = savedKey;
+                apiKeyInput.value = savedKey;
+                updateApiStatus(true);
+                // 警告メッセージを削除
+                const warningMsg = messagesDiv.querySelector('.message-warning');
+                if (warningMsg) warningMsg.remove();
+                // 初期メッセージを追加
+                addMessage('bot', 'こんにちは！何でもお聞きください。');
+            }
+        });
+        
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                alert('APIキーを入力してください。');
+                return;
+            }
+            
+            API_KEY = key;
+            localStorage.setItem('groq_api_key', key);
+            updateApiStatus(true);
+            
+            // 警告メッセージを削除
+            const warningMsg = messagesDiv.querySelector('.message-warning');
+            if (warningMsg) warningMsg.remove();
+            
+            // 初期メッセージがなければ追加
+            if (messagesDiv.children.length === 0) {
+                addMessage('bot', 'こんにちは！何でもお聞きください。');
+            }
+            
+            inputField.focus();
+        }
+        
+        function updateApiStatus(isSet) {
+            if (isSet) {
+                apiStatus.textContent = '✓ 設定済み';
+                apiStatus.style.color = 'rgba(255,255,255,0.9)';
+            } else {
+                apiStatus.textContent = '';
+            }
+        }
+        
+        function addMessage(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message message-${role}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(contentDiv);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message message-bot';
+            typingDiv.id = 'typing-indicator';
+            
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+            
+            typingDiv.appendChild(indicator);
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) indicator.remove();
+        }
+        
+        async function sendMessage() {
+            if (!API_KEY) {
+                alert('先にAPIキーを入力して保存してください。');
+                return;
+            }
+            
+            const userMessage = inputField.value.trim();
+            if (!userMessage) return;
+            
+            addMessage('user', userMessage);
+            inputField.value = '';
+            inputField.style.height = 'auto';
+            sendBtn.disabled = true;
+            showTypingIndicator();
+            
+            conversationHistory.push({ role: 'user', content: userMessage });
+            
+            try {
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'llama-3.1-8b-instant',
+                        messages: conversationHistory,
+                        temperature: 0.7,
+                        max_tokens: 2000
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API エラー: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const botMessage = data.choices[0].message.content;
+                
+                removeTypingIndicator();
+                addMessage('bot', botMessage);
+                
+                conversationHistory.push({ role: 'assistant', content: botMessage });
+                
+                // 会話履歴が長くなりすぎないよう制限
+                if (conversationHistory.length > 20) {
+                    conversationHistory = conversationHistory.slice(-10);
+                }
+                
+            } catch (error) {
+                removeTypingIndicator();
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message message-error';
+                errorDiv.innerHTML = `<div class="message-content">エラーが発生しました: ${error.message}<br>APIキーを確認してください。</div>`;
+                messagesDiv.appendChild(errorDiv);
+            } finally {
+                sendBtn.disabled = false;
+                inputField.focus();
+            }
+        }
+        
+        // 自動リサイズ
+        inputField.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+        
+        // Enterキーで送信（Shift+Enterで改行）
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // APIキー入力欄でEnterキーを押すと保存
+        apiKeyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveApiKey();
+            }
+        });
+        
+        // 初期フォーカス
+        inputField.focus();
+    </script>
+</body>
+</html>
