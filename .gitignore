@@ -106,3 +106,8 @@ Desktop.ini
 *.bak
 *.swp
 *~.nib
+
+# .gitignore
+docs/01-special-lecture-on-linguistics/05-nlb-nlt.md
+docs/01-special-lecture-on-linguistics/06-chunagon.md
+docs/01-special-lecture-on-linguistics/07-regular-expressions.md
