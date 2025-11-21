@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>形態素解析ビジュアライザー with Gemini</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f8fafc;
+            overflow: hidden;
+        }
+        .token {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+        .material-symbols-outlined { font-size: 18px; vertical-align: middle; }
+
+        /* パネルのアニメーション */
+        #footerPanel {
+            transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: height;
+        }
+
+        /* テキストエリアのスタイル調整 */
+        textarea {
+            min-height: 3rem; /* 最小の高さ */
+            max-height: 30vh; /* 画面の30%以上は大きくならない */
+            transition: height 0.2s ease;
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex flex-col items-center justify-center p-0 md:p-4 text-slate-700">
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full mx-4 border border-slate-200">
+            <div class="flex items-center gap-2 mb-4 text-cyan-700">
+                <span class="material-symbols-outlined text-3xl">psychology</span>
+                <h2 class="text-xl font-bold">AI鑑識ラボへようこそ</h2>
+            </div>
+            <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                ここは言葉を科学的に分析する「鑑識ラボ」です。分析エンジンを起動するために、APIキーを入力してください。
+            </p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Gemini APIキー</label>
+                    <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block p-2.5">
+                </div>
+                <button id="startBtn" class="w-full text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 font-medium rounded-lg text-sm px-5 py-3 text-center shadow-lg transform transition hover:scale-[1.02]">
+                    ラボに入室する
+                </button>
+                <div class="text-center mt-2">
+                    <button id="skipBtn" class="text-xs text-slate-400 hover:text-slate-600 underline">キーを持っていません（デモモードで開始）</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインUI -->
+    <div class="bg-white w-full max-w-5xl md:rounded-xl shadow-xl border border-slate-200 overflow-hidden flex flex-col h-screen md:h-[90vh] relative">
+
+        <!-- ヘッダー -->
+        <div class="bg-slate-800 text-white p-3 px-4 md:px-5 flex justify-between items-center shrink-0 shadow-md z-20">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-cyan-400">biotech</span>
+                <h1 class="font-bold text-base md:text-lg tracking-wide">形態素解析ラボ <span class="hidden md:inline text-xs font-normal opacity-70 ml-2">Powered by Gemini</span></h1>
+            </div>
+            <div id="modeBadge" class="text-xs font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-slate-400"></span> デモモード
+            </div>
+        </div>
+
+        <!-- 入力エリア -->
+        <div class="bg-slate-50 p-4 border-b border-slate-200 flex flex-col md:flex-row gap-3 shrink-0 items-stretch md:items-start z-10 relative shadow-sm" id="inputArea">
+            <div class="flex-1 min-w-0">
+                <div class="flex justify-between mb-1">
+                    <label class="text-xs font-bold text-slate-500">分析対象（証拠テキスト）</label>
+                    <button id="randomSampleBtn" class="text-xs text-cyan-600 hover:underline flex items-center gap-1">
+                        <span class="material-symbols-outlined" style="font-size:14px">shuffle</span>例文セット
+                    </button>
+                </div>
+                <textarea id="textInput" rows="1" class="block p-2.5 w-full text-sm text-slate-900 bg-white rounded-lg border border-slate-300 focus:ring-cyan-500 focus:border-cyan-500 resize-none overflow-hidden" placeholder="ここに分析したい日本語を入力してください..."></textarea>
+            </div>
+
+            <div class="flex md:flex-col gap-2 mt-0 md:mt-6 shrink-0">
+                <button id="analyzeBtn" class="flex-1 md:flex-none justify-center text-white bg-cyan-600 hover:bg-cyan-700 font-medium rounded-lg text-sm px-4 py-2.5 shadow-sm flex items-center gap-2 whitespace-nowrap transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span class="material-symbols-outlined">cut</span> 解析実行
+                </button>
+                <button id="resetBtn" class="flex-1 md:flex-none justify-center text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 font-medium rounded-lg text-sm px-4 py-2 shadow-sm hidden whitespace-nowrap">
+                    リセット
+                </button>
+            </div>
+        </div>
+
+        <!-- ビジュアライゼーションエリア -->
+        <div class="flex-1 relative bg-slate-50/50 flex flex-col items-center justify-center p-2 md:p-6 overflow-hidden group">
+            <div class="absolute inset-0 opacity-5 pointer-events-none"
+                 style="background-image: radial-gradient(#64748b 1px, transparent 1px); background-size: 20px 20px;">
+            </div>
+
+            <div id="rawDisplay" class="text-xl md:text-3xl font-bold text-slate-700/30 tracking-widest absolute select-none text-center px-4">
+                NO DATA
+            </div>
+
+            <div id="loadingIndicator" class="hidden flex flex-col items-center gap-3 z-20">
+                <div class="w-10 h-10 md:w-12 md:h-12 border-4 border-cyan-100 border-t-cyan-500 rounded-full animate-spin"></div>
+                <div class="text-cyan-600 font-bold text-sm animate-pulse">AI鑑識中...</div>
+            </div>
+
+            <div id="resultContainer" class="flex flex-wrap gap-2 justify-center items-center content-start w-full max-h-full overflow-y-auto py-4 opacity-0 transition-opacity duration-300 absolute z-10 px-2 md:px-4 pb-24">
+                <!-- JSでトークンを生成 -->
+            </div>
+        </div>
+
+        <!-- 情報パネル（フッター） -->
+        <div id="footerPanel" class="bg-white border-t border-slate-200 h-28 shrink-0 flex flex-col relative shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-30">
+
+            <!-- タブヘッダー -->
+            <div id="footerHeader" class="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-slate-400" style="font-size: 16px;">info</span>
+                    <span>詳細分析パネル</span>
+                </div>
+                <div class="flex gap-2 md:gap-3">
+                    <div class="flex items-center gap-1 whitespace-nowrap"><span class="w-2 h-2 rounded-full bg-blue-500"></span>名詞</div>
+                    <div class="flex items-center gap-1 whitespace-nowrap"><span class="w-2 h-2 rounded-full bg-green-500"></span>動詞</div>
+                    <div class="flex items-center gap-1 whitespace-nowrap"><span class="w-2 h-2 rounded-full bg-orange-400"></span>形容詞</div>
+                </div>
+            </div>
+
+            <!-- コンテンツエリア -->
+            <div id="infoPanelContent" class="px-4 py-2 flex-1 overflow-y-auto relative">
+                <div class="text-slate-400 text-sm flex items-center justify-center h-full gap-2">
+                    <span class="material-symbols-outlined">touch_app</span>
+                    上のブロックを選択すると詳細が表示されます
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * STATE & CONFIG
+         */
+        let apiKey = "";
+        let isDemoMode = true;
+        let currentTokens = [];
+        let isExpanded = false;
+
+        const DEMO_SAMPLES = [
+            "すもももももももものうち",
+            "隣の客はよく柿食う客だ",
+            "言語学とは、人間が持っている言語能力を科学的に解明する学問である。",
+            "タピるために渋谷に行ったけど、マジ卍だった。",
+            "AIはハルシネーションを起こすことがあるので注意が必要です。"
+        ];
+
+        const els = {
+            modal: document.getElementById('apiKeyModal'),
+            apiKeyInput: document.getElementById('apiKeyInput'),
+            startBtn: document.getElementById('startBtn'),
+            skipBtn: document.getElementById('skipBtn'),
+            modeBadge: document.getElementById('modeBadge'),
+
+            textInput: document.getElementById('textInput'),
+            analyzeBtn: document.getElementById('analyzeBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            randomSampleBtn: document.getElementById('randomSampleBtn'),
+
+            rawDisplay: document.getElementById('rawDisplay'),
+            loadingIndicator: document.getElementById('loadingIndicator'),
+            resultContainer: document.getElementById('resultContainer'),
+            infoPanelContent: document.getElementById('infoPanelContent'),
+            footerPanel: document.getElementById('footerPanel'),
+            footerHeader: document.getElementById('footerHeader')
+        };
+
+        /**
+         * AUTO RESIZE TEXTAREA
+         */
+        function autoResizeTextarea() {
+            const textarea = els.textInput;
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight + 2) + 'px';
+        }
+
+        els.textInput.addEventListener('input', autoResizeTextarea);
+
+        // ウィンドウリサイズ時も調整
+        window.addEventListener('resize', () => {
+            autoResizeTextarea();
+            if (isExpanded) adjustFooterToContent();
+        });
+
+        /**
+         * FOOTER AUTO RESIZE
+         * 内容に合わせてフッター高さをpxで計算し、画面を占有しすぎないように上限を設ける
+         */
+        const FOOTER_MIN_PX = 112; // 7rem相当
+        const FOOTER_MAX_VH = 55;  // 画面の55%まで
+
+        function setFooterHeightPx(px) {
+            const maxPx = window.innerHeight * (FOOTER_MAX_VH / 100);
+            const clamped = Math.max(FOOTER_MIN_PX, Math.min(px, maxPx));
+            els.footerPanel.style.height = clamped + 'px';
+        }
+
+        function adjustFooterToContent(extra = 0) {
+            const headerH = els.footerHeader?.offsetHeight || 0;
+            const contentH = els.infoPanelContent.scrollHeight;
+            setFooterHeightPx(headerH + contentH + extra);
+            isExpanded = true;
+        }
+
+        function expandFooter() {
+            // 旧仕様の45%固定をやめ、内容ベースで拡張
+            adjustFooterToContent();
+        }
+
+        function collapseFooter() {
+            isExpanded = false;
+            setFooterHeightPx(FOOTER_MIN_PX);
+        }
+
+        /**
+         * INITIALIZATION
+         */
+        els.startBtn.addEventListener('click', () => {
+            const input = els.apiKeyInput.value.trim();
+            if (input) {
+                apiKey = input;
+                isDemoMode = false;
+                updateModeBadge();
+                hideModal();
+            } else {
+                alert("APIキーを入力してください。");
+            }
+        });
+
+        els.skipBtn.addEventListener('click', () => {
+            isDemoMode = true;
+            updateModeBadge();
+            hideModal();
+            els.textInput.value = DEMO_SAMPLES[0];
+            autoResizeTextarea();
+        });
+
+        function updateModeBadge() {
+            if (isDemoMode) {
+                els.modeBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-400"></span> デモモード';
+                els.modeBadge.className = "text-xs font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded flex items-center gap-1";
+                els.textInput.placeholder = "デモモードでは自由入力は解析されません（例文のみ動作）";
+            } else {
+                els.modeBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_cyan]"></span> AI鑑識モード';
+                els.modeBadge.className = "text-xs font-bold bg-cyan-900 text-cyan-100 px-2 py-1 rounded flex items-center gap-1 border border-cyan-700";
+                els.textInput.placeholder = "解析したい日本語を入力してください...";
+            }
+        }
+
+        function hideModal() {
+            els.modal.style.opacity = '0';
+            setTimeout(() => els.modal.classList.add('hidden'), 300);
+        }
+
+        els.randomSampleBtn.addEventListener('click', () => {
+            const randomText = DEMO_SAMPLES[Math.floor(Math.random() * DEMO_SAMPLES.length)];
+            els.textInput.value = randomText;
+            autoResizeTextarea();
+            resetView();
+        });
+
+        els.resetBtn.addEventListener('click', resetView);
+
+        function resetView() {
+            els.resultContainer.innerHTML = '';
+            els.resultContainer.style.opacity = '0';
+            els.rawDisplay.style.opacity = '1';
+            els.rawDisplay.innerText = els.textInput.value || "NO DATA";
+
+            collapseFooter();
+            els.infoPanelContent.innerHTML = '<div class="text-slate-400 text-sm flex items-center justify-center h-full gap-2"><span class="material-symbols-outlined">touch_app</span>上のブロックを選択すると詳細が表示されます</div>';
+
+            toggleInputState(false);
+        }
+
+        function toggleInputState(isAnalyzed) {
+            if (isAnalyzed) {
+                els.analyzeBtn.classList.add('hidden');
+                els.resetBtn.classList.remove('hidden');
+                els.textInput.disabled = true;
+                els.textInput.classList.add('bg-slate-100');
+            } else {
+                els.analyzeBtn.classList.remove('hidden');
+                els.resetBtn.classList.add('hidden');
+                els.textInput.disabled = false;
+                els.textInput.classList.remove('bg-slate-100');
+            }
+        }
+
+        /**
+         * CORE LOGIC
+         */
+        els.analyzeBtn.addEventListener('click', async () => {
+            const text = els.textInput.value.trim();
+            if (!text) return;
+
+            els.rawDisplay.style.opacity = '0';
+            els.loadingIndicator.classList.remove('hidden');
+            els.analyzeBtn.disabled = true;
+            collapseFooter();
+
+            try {
+                let tokens;
+                if (isDemoMode) {
+                    await new Promise(r => setTimeout(r, 800));
+                    tokens = getDemoTokens(text);
+                } else {
+                    tokens = await fetchGeminiAnalysis(text);
+                }
+
+                renderTokens(tokens);
+                toggleInputState(true);
+
+            } catch (error) {
+                console.error(error);
+                alert("解析中にエラーが発生しました。\n" + error.message);
+                els.rawDisplay.style.opacity = '1';
+            } finally {
+                els.loadingIndicator.classList.add('hidden');
+                els.analyzeBtn.disabled = false;
+            }
+        });
+
+        async function fetchGeminiAnalysis(text) {
+            const prompt = `
+            You are a Japanese linguistic morphology analyzer.
+            Analyze the text and return a JSON array of tokens.
+            Text: "${text}"
+
+            JSON structure per token:
+            {
+                "surf": "Word",
+                "read": "Katakana",
+                "pos": "Noun/Verb/etc",
+                "sub": "Sub-pos",
+                "type": "noun|verb|adj|particle|other",
+                "desc": "Short description (under 30 chars)"
+            }
+            Return ONLY JSON.
+            `;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+
+            if (!response.ok) throw new Error("API Error");
+            const data = await response.json();
+            const jsonStr = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+            return JSON.parse(jsonStr);
+        }
+
+        function getDemoTokens(text) {
+            if (text.includes("すもも")) {
+                return [
+                    { surf: "すもも", read: "スモモ", pos: "名詞", sub: "一般", type: "noun", desc: "バラ科の果物" },
+                    { surf: "も", read: "モ", pos: "助詞", sub: "係助詞", type: "particle", desc: "並列" },
+                    { surf: "もも", read: "モモ", pos: "名詞", sub: "一般", type: "noun", desc: "果物" },
+                    { surf: "も", read: "モ", pos: "助詞", sub: "係助詞", type: "particle", desc: "並列" },
+                    { surf: "もも", read: "モモ", pos: "名詞", sub: "一般", type: "noun", desc: "果物" },
+                    { surf: "の", read: "ノ", pos: "助詞", sub: "連体化", type: "particle", desc: "属性" },
+                    { surf: "うち", read: "ウチ", pos: "名詞", sub: "非自立", type: "noun", desc: "範囲・仲間" }
+                ];
+            }
+            return [
+                { surf: text.substring(0, 2), read: "デモ", pos: "名詞", sub: "デモ", type: "noun", desc: "デモデータ" },
+                { surf: text.substring(2), read: "テキスト", pos: "その他", sub: "残余", type: "other", desc: "残りのテキスト" }
+            ];
+        }
+
+        /**
+         * AI EXPLANATION
+         */
+        async function askAiExplanation(token) {
+            if (isDemoMode) {
+                alert("デモモードではAI解説は使用できません。");
+                return;
+            }
+
+            els.infoPanelContent.innerHTML = `
+                <div class="animate-fade-in">
+                    <div class="flex items-center gap-2 text-cyan-700 font-bold text-sm animate-pulse">
+                        <span class="material-symbols-outlined" style="font-size:20px">auto_awesome</span>
+                        <span>AIが「${token.surf}」を考察中...</span>
+                    </div>
+                    <p class="text-slate-400 text-xs mt-1">文脈における意味やニュアンスを分析しています</p>
+                </div>
+            `;
+            expandFooter();
+
+            try {
+                const prompt = `
+                あなたは言語学の専門家です。以下の単語について、文脈を踏まえた詳しい解説（100文字程度）を行ってください。
+                単語: ${token.surf}
+                品詞: ${token.pos}
+                元の文: "${els.textInput.value}"
+
+                以下の観点を含めてください：
+                1. 基本的な意味
+                2. この文脈での役割やニュアンス
+                3. 若者言葉や俗語としての特徴（もしあれば）
+                `;
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const data = await response.json();
+                const explanation = data.candidates[0].content.parts[0].text;
+
+                renderExplanationResult(token, explanation);
+
+            } catch (e) {
+                console.error(e);
+                els.infoPanelContent.innerHTML = `<div class="text-red-500 p-4">解説の生成に失敗しました。</div>`;
+                expandFooter();
+            }
+        }
+
+        function renderExplanationResult(token, explanation) {
+            const formattedExp = explanation.replace(/\n/g, '<br>');
+
+            els.infoPanelContent.innerHTML = `
+                <div class="animate-fade-in">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2 text-cyan-800 font-bold text-base">
+                            <span class="material-symbols-outlined">smart_toy</span>
+                            AI鑑識官の考察
+                        </div>
+                        <button onclick="closeExplanation()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-600 px-2 py-1 rounded-full flex items-center gap-1 transition-colors">
+                            <span class="material-symbols-outlined" style="font-size:14px">close</span> 閉じる
+                        </button>
+                    </div>
+
+                    <div class="bg-cyan-50 rounded-lg p-2.5 md:p-3 border border-cyan-100 text-sm leading-relaxed text-slate-600 shadow-inner overflow-y-auto max-h-[30vh]">
+                        <h4 class="font-bold text-cyan-900 mb-1 border-b border-cyan-200 pb-1 inline-block">対象：${token.surf} <span class="text-xs font-normal text-cyan-700">(${token.pos})</span></h4>
+                        <div class="mt-1 text-xs md:text-sm">
+                            ${formattedExp}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            expandFooter();
+
+            window.closeExplanation = () => {
+                collapseFooter();
+                showTokenInfo(token);
+            };
+        }
+
+        /**
+         * RENDERING TOKENS
+         */
+        function renderTokens(tokens) {
+            els.resultContainer.innerHTML = '';
+            els.resultContainer.style.opacity = '1';
+
+            tokens.forEach((token, index) => {
+                const el = document.createElement('div');
+
+                let colorClass = 'bg-slate-200 border-slate-300 text-slate-600';
+                let hoverColor = 'group-hover:border-slate-400';
+
+                switch (token.type) {
+                    case 'noun':
+                        colorClass = 'bg-blue-50 border-blue-200 text-blue-700';
+                        hoverColor = 'hover:bg-blue-100 hover:border-blue-300'; break;
+                    case 'verb':
+                        colorClass = 'bg-green-50 border-green-200 text-green-700';
+                        hoverColor = 'hover:bg-green-100 hover:border-green-300'; break;
+                    case 'adj':
+                        colorClass = 'bg-orange-50 border-orange-200 text-orange-700';
+                        hoverColor = 'hover:bg-orange-100 hover:border-orange-300'; break;
+                    case 'particle':
+                        colorClass = 'bg-slate-100 border-slate-300 text-slate-600';
+                        hoverColor = 'hover:bg-slate-200 hover:border-slate-400'; break;
+                }
+
+                el.className = `token cursor-pointer border-b-4 rounded px-3 py-2 text-lg font-bold shadow-sm ${colorClass} ${hoverColor} transform translate-y-4 opacity-0 transition-all duration-300 select-none`;
+                el.innerText = token.surf;
+
+                setTimeout(() => {
+                    el.classList.remove('translate-y-4', 'opacity-0');
+                }, index * 50);
+
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.token').forEach(t => t.classList.remove('ring-2', 'ring-cyan-400'));
+                    el.classList.add('ring-2', 'ring-cyan-400');
+
+                    if (isExpanded) {
+                        collapseFooter();
+                    }
+                    showTokenInfo(token);
+                });
+
+                els.resultContainer.appendChild(el);
+            });
+        }
+
+        function showTokenInfo(token) {
+            const aiButtonHtml = isDemoMode ? '' : `
+                <button onclick="askAiExplanationWrapper('${token.surf}')" class="mt-2 w-full md:w-auto text-xs flex items-center justify-center gap-1 text-cyan-600 hover:text-white hover:bg-cyan-600 px-3 py-2 rounded transition-colors border border-cyan-200 bg-cyan-50 shrink-0">
+                    <span class="material-symbols-outlined" style="font-size:18px">auto_awesome</span>
+                    AI解説を生成
+                </button>
+            `;
+
+            els.infoPanelContent.innerHTML = `
+                <div class="flex flex-col md:flex-row gap-2 md:gap-4 items-start animate-fade-in">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-baseline gap-3 mb-1">
+                            <h3 class="text-2xl font-bold text-slate-800">${token.surf}</h3>
+                            <span class="font-mono text-slate-500 text-sm">${token.read}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mb-2">
+                            <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-xs font-bold">${token.pos}</span>
+                            <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-xs">${token.sub}</span>
+                        </div>
+                        <p class="text-sm text-slate-600 leading-snug">${token.desc || ""}</p>
+                    </div>
+                    <div class="w-full md:w-auto shrink-0 mt-1 md:mt-0">
+                        ${aiButtonHtml}
+                    </div>
+                </div>
+            `;
+
+            window.askAiExplanationWrapper = () => askAiExplanation(token);
+            expandFooter();
+        }
+
+        // 初期状態のフッター高さを明示
+        collapseFooter();
+    </script>
+</body>
+</html>
