@@ -42,9 +42,13 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
   - footnotes
+  - pymdownx.arithmatex:
+      generic: true
 
 extra_javascript:
   - https://unpkg.com/mermaid/dist/mermaid.min.js
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
   - 取扱説明書: index.md

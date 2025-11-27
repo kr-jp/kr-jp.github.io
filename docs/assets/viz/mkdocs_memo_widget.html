@@ -3,255 +3,480 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>メモ帳</title>
+    <title>授業用メモ帳</title>
     <style>
+        :root {
+            /* 라이트 모드 변수 */
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e5e7eb;
+            --header-bg: #f9fafb;
+            --textarea-bg: #ffffff;
+            --icon-color: #6b7280;
+            --accent-color: #2563eb;
+            --danger-color: #ef4444;
+            --success-color: #10b981;
+            --toast-bg: #374151;
+            --toast-text: #ffffff;
+            --info-text: #6b7280;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="dark"] {
+            /* 다크 모드 변수 */
+            --bg-color: #1f2937;
+            --text-color: #e5e7eb;
+            --border-color: #374151;
+            --header-bg: #111827;
+            --textarea-bg: #1f2937;
+            --icon-color: #9ca3af;
+            --accent-color: #60a5fa;
+            --danger-color: #f87171;
+            --success-color: #34d399;
+            --toast-bg: #ffffff;
+            --toast-text: #1f2937;
+            --info-text: #9ca3af;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.18);
+        }
+
         * {
             box-sizing: border-box;
+            outline: none;
         }
-        
+
         body {
             margin: 0;
-            padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-            background: transparent;
+            padding: 0;
+            /* 일본어 폰트 우선 순위 적용 (맥, 윈도우 표준) */
+            font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "BIZ UDPGothic", "Meiryo", "Yu Gothic", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: transparent;
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
         }
-        
+
         .memo-container {
+            display: flex;
+            flex-direction: column;
             width: 100%;
-            max-width: 100%;
-            margin: 0 auto;
-            background: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
+            height: 100vh;
+            max-height: 100vh;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
         }
-        
+
+        /* 헤더 영역 */
         .memo-header {
-            background: linear-gradient(to right, #f5f5f5, #fafafa);
-            padding: 12px 16px;
-            border-bottom: 1px solid #e0e0e0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 12px 16px;
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
         }
-        
+
         .memo-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color);
             display: flex;
             align-items: center;
             gap: 8px;
-            margin: 0;
-            font-size: 15px;
-            font-weight: 600;
-            color: #424242;
+            user-select: none;
         }
-        
-        .memo-buttons {
+
+        .memo-actions {
             display: flex;
-            gap: 8px;
+            gap: 4px;
         }
-        
-        .memo-button {
-            padding: 5px 12px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            background: white;
+
+        .icon-btn {
+            background: transparent;
+            border: none;
             cursor: pointer;
-            font-size: 13px;
-            color: #666;
-            transition: all 0.2s;
-            font-family: inherit;
+            padding: 6px;
+            border-radius: 6px;
+            color: var(--icon-color);
+            transition: background 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        
-        .memo-button:hover {
-            background: #f5f5f5;
-            border-color: #bbb;
+
+        .icon-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+            color: var(--text-color);
         }
-        
-        .clear-button {
-            color: #d32f2f;
-            border-color: #ffcdd2;
+
+        [data-theme="dark"] .icon-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
         }
-        
-        .clear-button:hover {
-            background: #ffebee;
-            border-color: #ef5350;
+
+        .icon-btn.danger:hover {
+            color: var(--danger-color);
+            background-color: rgba(239, 68, 68, 0.1);
         }
-        
+
+        /* 본문 영역 */
         .memo-body {
-            padding: 16px;
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
         }
-        
-        .memo-textarea {
+
+        textarea {
+            flex: 1;
             width: 100%;
-            min-height: 180px;
-            padding: 12px;
-            border: 1px solid #e0e0e0;
-            border-radius: 3px;
-            font-size: 14px;
-            line-height: 1.6;
+            padding: 16px;
+            border: none;
+            resize: none;
+            background-color: var(--textarea-bg);
+            color: var(--text-color);
             font-family: inherit;
-            resize: vertical;
-            transition: border-color 0.2s;
+            /* 폰트 사이즈 확대: 15px -> 17px */
+            font-size: 17px; 
+            line-height: 1.6;
         }
         
-        .memo-textarea:focus {
-            outline: none;
-            border-color: #1976d2;
-            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+        textarea::placeholder {
+            color: var(--icon-color);
+            opacity: 0.6;
+            font-size: 15px; /* 플레이스홀더는 약간 작게 유지해도 무방 */
         }
-        
+
+        /* 하단 정보 영역 */
         .memo-footer {
-            padding: 12px 16px;
-            background: #fafafa;
-            border-top: 1px solid #e0e0e0;
+            padding: 10px 16px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column; /* 모바일 대응을 위해 세로 배치 허용 */
+            gap: 8px;
+            font-size: 12px;
+            color: var(--icon-color);
+        }
+
+        .footer-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
-            color: #757575;
+            width: 100%;
         }
         
-        .memo-info {
+        /* 프라이버시 알림 문구 */
+        .privacy-notice {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--info-text);
+            background-color: rgba(0,0,0,0.03);
+            padding: 4px 8px;
+            border-radius: 4px;
+            width: fit-content;
         }
         
-        .save-indicator {
+        [data-theme="dark"] .privacy-notice {
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        .status-area {
             display: flex;
             align-items: center;
-            gap: 4px;
-            color: #2e7d32;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+            transition: background-color 0.3s;
+        }
+
+        .status-dot.saving {
+            background-color: var(--accent-color);
+        }
+
+        .status-dot.saved {
+            background-color: var(--success-color);
+        }
+
+        /* 토스트 메시지 */
+        .toast {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background-color: var(--toast-bg);
+            color: var(--toast-text);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
             opacity: 0;
-            transition: opacity 0.3s;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10;
+            white-space: nowrap;
         }
-        
-        .save-indicator.show {
+
+        .toast.show {
             opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* SVG 아이콘 스타일 */
+        svg {
+            width: 18px;
+            height: 18px;
+            stroke-width: 2;
+            stroke: currentColor;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
         
-        .char-count {
-            color: #9e9e9e;
+        .privacy-icon {
+            width: 12px;
+            height: 12px;
         }
     </style>
 </head>
 <body>
-    <div class="memo-container">
-        <div class="memo-header">
-            <h3 class="memo-title">
-                <span>📝</span>
-                <span>メモ帳</span>
-            </h3>
-            <div class="memo-buttons">
-                <button class="memo-button" onclick="downloadMemo()" title="テキストファイルとしてダウンロード">
-                    💾 メモをダウンロード
-                </button>
-                <button class="memo-button clear-button" onclick="clearMemo()" title="メモを削除">
-                    🗑️ 削除
-                </button>
-            </div>
+
+<div class="memo-container">
+    <!-- 헤더 -->
+    <div class="memo-header">
+        <div class="memo-title">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Memo
         </div>
-        
-        <div class="memo-body">
-            <textarea 
-                class="memo-textarea" 
-                id="memoText" 
-                placeholder=""
-                oninput="saveMemo()"></textarea>
-        </div>
-        <!-- 「そこを動かないでください。今からお迎えにまいります。」というドラマの台詞があった。私の母語だと「そこで動かないでください」の方が自然。『新明解国語辞典』（第八版）の「動く」の見出しを見ると、「助けが来るまでそこを―〔離れる〕な」が用例にある。 -->
-        
-        <div class="memo-footer">
-            <div class="memo-info">
-                <span>💡</span>
-                <span>メモはご自身のパソコンやスマホなどのウェブブラウザにのみ保存されます。</span>
-            </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <span class="char-count" id="charCount">0文字</span>
-                <span class="save-indicator" id="saveIndicator">
-                    <span>✓</span>
-                    <span>保存しました</span>
-                </span>
-            </div>
+        <div class="memo-actions">
+            <button class="icon-btn" onclick="toggleTheme()" title="表示モード切替（ダーク/ライト）">
+                <svg id="themeIcon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            </button>
+            <div style="width: 1px; height: 16px; background: var(--border-color); margin: 0 4px; align-self: center;"></div>
+            <button class="icon-btn" onclick="copyToClipboard()" title="クリップボードにコピー">
+                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+            <button class="icon-btn" onclick="downloadMemo()" title="ファイルとして保存">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </button>
+            <button class="icon-btn danger" onclick="clearMemo()" title="メモを削除">
+                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
         </div>
     </div>
 
-    <script>
-        const STORAGE_KEY = 'mkdocs_memo_' + window.location.pathname;
-        const textarea = document.getElementById('memoText');
-        const saveIndicator = document.getElementById('saveIndicator');
-        const charCount = document.getElementById('charCount');
-        let saveTimeout;
+    <!-- 본문 -->
+    <div class="memo-body">
+        <textarea id="memoText" placeholder="ここにメモを入力... (内容は自動的に保存されます)" spellcheck="false"></textarea>
+        <div id="toast" class="toast">メッセージ</div>
+    </div>
 
-        // ページ読み込み時に保存されたメモを読み込む
-        function loadMemo() {
-            const savedMemo = localStorage.getItem(STORAGE_KEY);
-            if (savedMemo) {
-                textarea.value = savedMemo;
-                updateCharCount();
-            }
-        }
+    <!-- 푸터 -->
+    <div class="memo-footer">
+        <div class="footer-top">
+            <div class="status-area">
+                <div id="saveStatusDot" class="status-dot"></div>
+                <span id="saveStatusText" style="font-size: 11px;">待機中</span>
+            </div>
+            <div id="charCount">0文字</div>
+        </div>
+        <!-- 프라이버시 알림 추가 -->
+        <div class="privacy-notice">
+            <svg class="privacy-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>ここに入力した内容は、お使いのブラウザにのみ保存され、外部に送信されることはありません。</span>
+        </div>
+    </div>
+</div>
 
-        // メモを保存
-        function saveMemo() {
-            const text = textarea.value;
-            localStorage.setItem(STORAGE_KEY, text);
-            updateCharCount();
-            
-            // 保存完了の表示
-            clearTimeout(saveTimeout);
-            saveIndicator.classList.add('show');
-            saveTimeout = setTimeout(() => {
-                saveIndicator.classList.remove('show');
-            }, 1500);
-        }
+<script>
+    // --- 설정 및 상수 ---
+    const STORAGE_KEY = 'mkdocs_memo_v2_' + window.location.pathname;
+    const textarea = document.getElementById('memoText');
+    const toastEl = document.getElementById('toast');
+    const charCountEl = document.getElementById('charCount');
+    const statusDot = document.getElementById('saveStatusDot');
+    const statusText = document.getElementById('saveStatusText');
+    
+    let saveTimeout;
+    let toastTimeout;
 
-        // 文字数を更新
-        function updateCharCount() {
-            const count = textarea.value.length;
-            charCount.textContent = count.toLocaleString('ja-JP') + '文字';
-        }
-
-        // メモを削除
-        function clearMemo() {
-            if (confirm('メモを削除してもよろしいですか？\n\nこの操作は取り消せません。')) {
-                textarea.value = '';
-                localStorage.removeItem(STORAGE_KEY);
-                updateCharCount();
-                
-                saveIndicator.querySelector('span:last-child').textContent = '削除しました';
-                saveIndicator.classList.add('show');
-                setTimeout(() => {
-                    saveIndicator.classList.remove('show');
-                    setTimeout(() => {
-                        saveIndicator.querySelector('span:last-child').textContent = '保存しました';
-                    }, 300);
-                }, 2000);
-            }
-        }
-
-        // テキストファイルとしてダウンロード
-        function downloadMemo() {
-            const text = textarea.value;
-            if (!text.trim()) {
-                alert('メモが空です。');
-                return;
-            }
-            
-            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            const date = new Date().toISOString().slice(0, 10);
-            a.href = url;
-            a.download = `memo_${date}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        // 初期化
+    // --- 초기화 ---
+    function init() {
         loadMemo();
-    </script>
+        detectTheme();
+        textarea.addEventListener('input', handleInput);
+        
+        // 탭 키 지원
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key == 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+                handleInput();
+            }
+        });
+    }
+
+    // --- 테마 관리 ---
+    function detectTheme() {
+        const savedTheme = localStorage.getItem('memo_theme_preference');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+        updateThemeIcon();
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('memo_theme_preference', newTheme);
+        updateThemeIcon();
+        // 일본어 메시지 적용
+        showToast(newTheme === 'dark' ? 'ダークモードに切り替えました' : 'ライトモードに切り替えました');
+    }
+
+    function updateThemeIcon() {
+        // 아이콘 변경 로직 필요 시 추가
+    }
+
+    // --- 메모 기능 ---
+    function loadMemo() {
+        const savedMemo = localStorage.getItem(STORAGE_KEY);
+        if (savedMemo) {
+            textarea.value = savedMemo;
+            updateCount();
+            setStatus('saved');
+        }
+    }
+
+    function handleInput() {
+        setStatus('saving');
+        updateCount();
+        
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            saveMemo();
+        }, 800);
+    }
+
+    function saveMemo() {
+        const text = textarea.value;
+        localStorage.setItem(STORAGE_KEY, text);
+        setStatus('saved');
+    }
+
+    function updateCount() {
+        const text = textarea.value;
+        const length = text.length;
+        // 일본어 메시지 적용
+        charCountEl.textContent = `${length.toLocaleString()}文字`;
+    }
+
+    function setStatus(state) {
+        statusDot.className = 'status-dot'; // reset
+        if (state === 'saving') {
+            statusDot.classList.add('saving');
+            statusText.textContent = '保存中...';
+        } else if (state === 'saved') {
+            statusDot.classList.add('saved');
+            statusText.textContent = '保存完了';
+        } else {
+            statusText.textContent = '待機中';
+        }
+    }
+
+    // --- 액션 기능 ---
+    function copyToClipboard() {
+        const text = textarea.value;
+        if (!text) {
+            showToast('コピーする内容がありません。');
+            return;
+        }
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+                .then(() => showToast('クリップボードにコピーしました！'))
+                .catch(err => fallbackCopy(text));
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    function fallbackCopy(text) {
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            showToast('クリップボードにコピーしました！');
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        } catch (err) {
+            showToast('コピーに失敗しました。');
+        }
+    }
+
+    function downloadMemo() {
+        const text = textarea.value;
+        if (!text.trim()) {
+            showToast('保存する内容がありません。');
+            return;
+        }
+        
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        const date = new Date().toISOString().slice(0, 10);
+        // 파일명도 일본어 수업 컨텍스트에 맞게 수정 가능하나, 호환성을 위해 영문 유지 혹은 'memo'
+        a.href = url;
+        a.download = `memo_${date}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast('ファイルをダウンロードしました。');
+    }
+
+    function clearMemo() {
+        if (!textarea.value) return;
+        
+        // 일본어 확인 메시지
+        if (confirm('作成中のメモをすべて削除しますか？\n（この操作は取り消せません）')) {
+            textarea.value = '';
+            localStorage.removeItem(STORAGE_KEY);
+            updateCount();
+            setStatus('default');
+            showToast('メモを削除しました。');
+        }
+    }
+
+    // --- UI 유틸리티 ---
+    function showToast(message) {
+        toastEl.textContent = message;
+        toastEl.classList.add('show');
+        
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            toastEl.classList.remove('show');
+        }, 3000);
+    }
+
+    init();
+</script>
+
 </body>
 </html>
