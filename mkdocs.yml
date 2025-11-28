@@ -60,7 +60,8 @@ nav:
     - 形態素と形態素解析: 01-special-lecture-on-linguistics/04-pos.md
     - NLBとNLT: 01-special-lecture-on-linguistics/05-nlb-nlt.md
     - 中納言: 01-special-lecture-on-linguistics/06-chunagon.md
-    - 正規表現: 01-special-lecture-on-linguistics/07-regular-expressions.md
+    - 正規表現—基礎編: 01-special-lecture-on-linguistics/07a-regex-basics.md
+    - 正規表現—応用編: 01-special-lecture-on-linguistics/07b-regex-advanced.md
     - 資料収集: 01-special-lecture-on-linguistics/08-data-collection.md
     - コーパスの構築: 01-special-lecture-on-linguistics/09-corpus-building.md
     - Colabの活用: 01-special-lecture-on-linguistics/10-colab.md

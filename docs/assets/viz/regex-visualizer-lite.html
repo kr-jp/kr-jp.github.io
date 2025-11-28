@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Visualizer Lite</title>
+    
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 3. Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- 4. Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: transparent; /* iframe 투명 배경 대응 */
+            padding: 0;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- 아이콘 래퍼 ---
+        const IconWrapper = ({ name, size = 18, className, ...props }) => {
+            const containerRef = useRef(null);
+            useEffect(() => {
+                const container = containerRef.current;
+                if (!container) return;
+                const i = document.createElement('i');
+                i.setAttribute('data-lucide', name);
+                if (className) i.setAttribute('class', className);
+                container.innerHTML = '';
+                container.appendChild(i);
+                lucide.createIcons({
+                    root: container,
+                    attrs: { width: size, height: size, ...props }
+                });
+            }, [name, size, className]);
+            return <span ref={containerRef} style={{ display: 'inline-flex', verticalAlign: 'middle' }}></span>;
+        };
+
+        const CheckCircle = (props) => <IconWrapper name="check-circle" {...props} />;
+        const AlertCircle = (props) => <IconWrapper name="alert-circle" {...props} />;
+        const Search = (props) => <IconWrapper name="search" {...props} />;
+        const FileText = (props) => <IconWrapper name="file-text" {...props} />;
+
+        const RegexVisualizerLite = () => {
+            // 초기값 설정: 사용자가 바로 이해할 수 있도록 간단한 예시 포함
+            const [pattern, setPattern] = useState('');
+            const [testString, setTestString] = useState('');
+            const [flags, setFlags] = useState({ g: true, i: false, m: false, u: true });
+            const [matches, setMatches] = useState([]);
+            const [error, setError] = useState('');
+
+            // --- 정규식 실행 로직 ---
+            useEffect(() => {
+                if (!pattern) {
+                    setMatches([]);
+                    setError('');
+                    return;
+                }
+
+                try {
+                    const flagString = Object.entries(flags)
+                        .filter(([_, enabled]) => enabled)
+                        .map(([flag, _]) => flag)
+                        .join('');
+                    
+                    const regex = new RegExp(pattern, flagString);
+                    const found = [];
+
+                    if (!testString) {
+                        setMatches([]);
+                        return;
+                    }
+
+                    if (flags.g) {
+                        let match;
+                        // 무한 루프 방지용 카운터
+                        let loopLimit = 0;
+                        while ((match = regex.exec(testString)) !== null && loopLimit < 1000) {
+                            found.push({
+                                match: match[0],
+                                index: match.index,
+                                length: match[0].length,
+                                groups: match.slice(1)
+                            });
+                            if (match.index === regex.lastIndex) regex.lastIndex++;
+                            loopLimit++;
+                        }
+                    } else {
+                        const match = regex.exec(testString);
+                        if (match) {
+                            found.push({
+                                match: match[0],
+                                index: match.index,
+                                length: match[0].length,
+                                groups: match.slice(1)
+                            });
+                        }
+                    }
+                    
+                    setMatches(found);
+                    setError('');
+                } catch (e) {
+                    setError(e.message);
+                    setMatches([]);
+                }
+            }, [pattern, testString, flags]);
+
+            // --- 스타일 헬퍼 ---
+            const getMatchStyle = (text) => {
+                if (!text) return "bg-gray-200 text-gray-800 border-gray-300";
+                if (/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text)) return "bg-rose-100 text-rose-900 border-rose-300"; // JP
+                if (/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(text)) return "bg-indigo-100 text-indigo-900 border-indigo-300"; // KR
+                if (/[a-zA-Z]/.test(text)) return "bg-emerald-100 text-emerald-900 border-emerald-300"; // EN
+                if (/[0-9]/.test(text)) return "bg-amber-100 text-amber-900 border-amber-300"; // Num
+                return "bg-slate-200 text-slate-800 border-slate-300";
+            };
+
+            // --- 렌더링: 하이라이트 뷰 ---
+            const renderHighlights = () => {
+                if (!testString) return <span className="text-gray-400 text-sm">入力待ち…</span>;
+                if (matches.length === 0) return <span className="text-gray-600">{testString}</span>;
+
+                const parts = [];
+                let lastIndex = 0;
+
+                matches.forEach((match, idx) => {
+                    if (match.index > lastIndex) {
+                        parts.push(<span key={`text-${idx}`}>{testString.substring(lastIndex, match.index)}</span>);
+                    }
+                    
+                    const colorClass = getMatchStyle(match.match);
+
+                    parts.push(
+                        <mark 
+                            key={`match-${idx}`}
+                            className={`${colorClass} rounded px-1 py-0.5 font-medium border-b-2 transition-colors cursor-default mx-0.5 text-[0.95em]`}
+                            title={`Match ${idx + 1}`}
+                        >
+                            {match.match || <span className="text-xs opacity-50">∅</span>}
+                        </mark>
+                    );
+                    lastIndex = match.index + match.length;
+                });
+
+                if (lastIndex < testString.length) {
+                    parts.push(<span key="text-end">{testString.substring(lastIndex)}</span>);
+                }
+                return <div className="whitespace-pre-wrap break-all leading-relaxed">{parts}</div>;
+            };
+
+            return (
+                <div className="w-full bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col overflow-hidden max-w-full">
+                    
+                    {/* 1. Header (Compact) */}
+                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between shrink-0">
+                        <div className="font-bold text-slate-700 flex items-center gap-2 text-sm">
+                            <Search size={16} className="text-indigo-500"/>
+                            <span>Regex Widget</span>
+                        </div>
+                        <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wide opacity-70">
+                            <span className="bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">JP</span>
+                            <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">KR</span>
+                            <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">EN</span>
+                        </div>
+                    </div>
+
+                    {/* 2. Target String Input (Top Priority) */}
+                    <div className="p-4 border-b border-slate-100 bg-white">
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 flex items-center gap-1">
+                            <FileText size={12}/> Target Text
+                        </label>
+                        <textarea
+                            value={testString}
+                            onChange={(e) => setTestString(e.target.value)}
+                            placeholder="こちらにテキストを入力うしてください。"
+                            rows={3}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200 outline-none resize-none transition-all"
+                        />
+                    </div>
+
+                    {/* 3. Regex Pattern Input */}
+                    <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                        <div className="flex justify-between items-center mb-1.5">
+                            <label className="block text-xs font-bold text-slate-500 uppercase">Pattern</label>
+                            {error ? (
+                                <span className="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                                    <AlertCircle size={10} /> Invalid
+                                </span>
+                            ) : (
+                                <span className="text-[10px] text-green-600 font-bold flex items-center gap-1">
+                                    <CheckCircle size={10} /> Valid
+                                </span>
+                            )}
+                        </div>
+                        <div className="relative flex items-center">
+                            <span className="absolute left-3 text-slate-400 font-mono text-sm">/</span>
+                            <input
+                                type="text"
+                                value={pattern}
+                                onChange={(e) => setPattern(e.target.value)}
+                                placeholder="regex pattern"
+                                className={`w-full pl-6 pr-12 py-2 border rounded font-mono text-sm outline-none transition-all ${
+                                    error ? 'border-red-300 bg-red-50 focus:border-red-500' : 'border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-200'
+                                }`}
+                            />
+                            <span className="absolute right-3 text-slate-400 font-mono text-sm">/</span>
+                        </div>
+                        
+                        {/* Compact Flags */}
+                        <div className="flex gap-3 mt-2">
+                            {['g', 'i', 'm', 'u'].map(flag => (
+                                <label key={flag} className="flex items-center gap-1 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={flags[flag]}
+                                        onChange={(e) => setFlags({...flags, [flag]: e.target.checked})}
+                                        className="w-3.5 h-3.5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                    />
+                                    <span className="text-xs text-slate-600 font-mono font-bold">{flag}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 4. Visual Result (Highlight) */}
+                    <div className="flex-1 p-4 bg-white min-h-[120px] overflow-y-auto custom-scrollbar">
+                        <div className="text-xs font-bold text-slate-500 uppercase mb-2">Match Result</div>
+                        <div className="text-sm leading-6 text-slate-800 font-sans break-all">
+                            {renderHighlights()}
+                        </div>
+                    </div>
+
+                    {/* Footer Info */}
+                    <div className="bg-slate-50 px-4 py-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
+                        <span>{matches.length} matches found</span>
+                        <span>Regex Visualizer Lite</span>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RegexVisualizerLite />);
+    </script>
+</body>
+</html>
