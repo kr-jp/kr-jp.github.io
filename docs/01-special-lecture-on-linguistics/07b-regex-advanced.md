@@ -237,3 +237,10 @@
     ```
 
 <iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+
+## 待ちに待った課題
+以下のページを確認して、ピボットテーブルの作り方を練習してみましょう。
+
+- [ピボットテーブルで表を作る](https://linguistics.notion.site/2c71b11c89f580d1ac38f118eea6805c?pvs=74)
+
+一度練習が終わったら、みなさんが調べてみたい表現を取り上げて「中納言」から検索し、ピボットテーブルを作ってみましょう。
