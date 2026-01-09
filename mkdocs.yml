@@ -51,7 +51,7 @@ extra_javascript:
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
-  - 取扱説明書: index.md
+  - ホーム: index.md
   - 言語学特講:
     - まえがき: 01-special-lecture-on-linguistics/00-index.md
     - 言語研究の技法: 01-special-lecture-on-linguistics/01-language-research.md
@@ -64,6 +64,15 @@ nav:
     - 正規表現—応用編: 01-special-lecture-on-linguistics/07b-regex-advanced.md
     - 資料収集: 01-special-lecture-on-linguistics/08-data-collection.md
     - コーパスの構築: 01-special-lecture-on-linguistics/09-corpus-building.md
-    - Colabの活用: 01-special-lecture-on-linguistics/10-colab.md
+    - Colabの活用—基礎編: 01-special-lecture-on-linguistics/10a-colab-basics.md
+    - Colabの活用—応用編: 01-special-lecture-on-linguistics/10b-colab-advanced.md
+  - 言語学専門演習:
+    - まえがき: 02-major-seminar-on-linguistics/00-index.md
+    - 先行研究: 02-major-seminar-on-linguistics/01-literature-review.md
+    - アカデミック・ライティング: 02-major-seminar-on-linguistics/02-academic-writing.md
+    - データの分析方法: 02-major-seminar-on-linguistics/03-data-analysis.md
+    - 2026年のAIと言語研究: 02-major-seminar-on-linguistics/04-genai-in-linguistics.md
+    - 文章は「時間」が書く: 02-major-seminar-on-linguistics/05-writing-takes-time.md
+    - 研究とメンタルヘルス: 02-major-seminar-on-linguistics/06-research-and-mental-health.md
   - 言語研究のためのLLM:
-    - 目次: 02-llm/index.md
+    - 目次: 03-llm/00-index.md
