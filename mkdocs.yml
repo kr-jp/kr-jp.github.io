@@ -50,6 +50,9 @@ extra_javascript:
   - javascripts/mathjax.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
+extra_css:
+  - stylesheets/citations.css
+
 nav:
   - ホーム: index.md
   - 言語学特講:

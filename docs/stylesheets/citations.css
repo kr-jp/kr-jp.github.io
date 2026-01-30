@@ -1,0 +1,60 @@
+/* 참고문헌 각주 스타일링 - Material for MkDocs */
+
+/* 각주 참조 번호 완전히 숨기기 */
+a.footnote-ref {
+    font-size: 0 !important;
+    text-decoration: none !important;
+}
+
+/* sup 태그 안의 텍스트도 숨기기 */
+sup:has(.footnote-ref) {
+    font-size: 0 !important;
+}
+
+sup:has(.footnote-ref) a {
+    font-size: 0 !important;
+}
+
+/* 아이콘으로 대체 */
+a.footnote-ref::after {
+    content: "📖";
+    font-size: 0.85rem !important;
+    vertical-align: super;
+    margin-left: 0.1em;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+a.footnote-ref:hover::after {
+    opacity: 1;
+}
+
+/* 혹시 sup 안에 직접 텍스트가 있는 경우 */
+sup[id^="fnref"] {
+    font-size: 0 !important;
+}
+
+sup[id^="fnref"] a.footnote-ref::after {
+    content: "📖";
+    font-size: 0.85rem !important;
+}
+
+/* 참고문헌 목록 스타일 */
+.footnote {
+    font-size: 0.9rem;
+    border-top: 1px solid var(--md-default-fg-color--lightest);
+    padding-top: 1rem;
+    margin-top: 2rem;
+}
+
+/* 되돌아가기 화살표 */
+.footnote-backref {
+    font-size: 0.8rem;
+    margin-left: 0.5em;
+    text-decoration: none;
+    opacity: 0.6;
+}
+
+.footnote-backref:hover {
+    opacity: 1;
+}

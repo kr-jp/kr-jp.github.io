@@ -6,7 +6,7 @@
     <link href="http://www.zotero.org/styles/japanese-academic-multilingual" rel="self"/>
     <category citation-format="author-date"/>
     <category field="generic-base"/>
-    <updated>2023-01-01T00:00:00+00:00</updated>
+    <updated>2025-01-30T00:00:00+00:00</updated>
     <rights license="http://creativecommons.org/licenses/by-sa/3.0/">This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 License</rights>
   </info>
 
@@ -15,8 +15,21 @@
       <term name="edition" form="short">版</term>
       <term name="editor" form="short">編</term>
       <term name="translator" form="short">訳</term>
+      <term name="et-al">ほか</term>
     </terms>
   </locale>
+
+  <!-- 정렬용 매크로: 영어(note 있음) → 일본어/한국어(note 없음) -->
+  <macro name="sort-key-language">
+    <choose>
+      <if variable="note">
+        <text value="1"/>
+      </if>
+      <else>
+        <text value="2"/>
+      </else>
+    </choose>
+  </macro>
 
   <!-- 저자명 매크로 (참고문헌용) -->
   <macro name="author">
@@ -138,8 +151,17 @@
   </citation>
 
   <!-- Bibliography (참고문헌 목록) -->
-  <bibliography hanging-indent="true" et-al-min="4" et-al-use-first="3" entry-spacing="0">
+  <!-- 
+    정렬 순서:
+    1. 언어 (영어 먼저, 일본어/한국어 다음)
+    2. 저자명
+    3. 연도
+    
+    et-al 제거: 전체 저자 표시
+  -->
+  <bibliography hanging-indent="true" entry-spacing="0">
     <sort>
+      <key macro="sort-key-language"/>
       <key macro="author"/>
       <key macro="issued"/>
     </sort>
