@@ -39,14 +39,6 @@ sup[id^="fnref"] a.footnote-ref::after {
     font-size: 0.85rem !important;
 }
 
-/* 참고문헌 목록 스타일 */
-.footnote {
-    font-size: 0.9rem;
-    border-top: 1px solid var(--md-default-fg-color--lightest);
-    padding-top: 1rem;
-    margin-top: 2rem;
-}
-
 /* 되돌아가기 화살표 */
 .footnote-backref {
     font-size: 0.8rem;

@@ -10,6 +10,14 @@
     <rights license="http://creativecommons.org/licenses/by-sa/3.0/">This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 License</rights>
   </info>
 
+  <!-- 英語locale -->
+  <locale xml:lang="en">
+    <terms>
+      <term name="et-al">et al.</term>
+    </terms>
+  </locale>
+
+  <!-- 日本語locale -->
   <locale xml:lang="ja">
     <terms>
       <term name="edition" form="short">版</term>
@@ -19,7 +27,7 @@
     </terms>
   </locale>
 
-  <!-- 정렬용 매크로: 영어(note 있음) → 일본어/한국어(note 없음) -->
+  <!-- ソート用マクロ: 英語(note あり) → 日本語/韓国語(note なし) -->
   <macro name="sort-key-language">
     <choose>
       <if variable="note">
@@ -31,7 +39,7 @@
     </choose>
   </macro>
 
-  <!-- 저자명 매크로 (참고문헌용) -->
+  <!-- 著者名マクロ (参考文献用) -->
   <macro name="author">
     <names variable="author">
       <name name-as-sort-order="first" sort-separator=", " delimiter="・"/>
@@ -43,7 +51,7 @@
     </names>
   </macro>
   
-  <!-- 저자명 매크로 (인용용 - 성만 표시) -->
+  <!-- 著者名マクロ (引用用 - 姓のみ表示) -->
   <macro name="author-short">
     <names variable="author">
       <name form="short" delimiter="・"/>
@@ -59,7 +67,7 @@
     </names>
   </macro>
 
-  <!-- 연도 매크로 -->
+  <!-- 年度マクロ -->
   <macro name="issued">
     <choose>
       <if variable="issued">
@@ -73,10 +81,10 @@
     </choose>
   </macro>
 
-  <!-- 제목 매크로 -->
+  <!-- タイトルマクロ -->
   <macro name="title">
     <choose>
-      <!-- 일본어/한국어 책: 『』 -->
+      <!-- 日本語/韓国語の本: 『』 -->
       <if type="book thesis" match="any">
         <choose>
           <if variable="note" match="none">
@@ -87,7 +95,7 @@
           </else>
         </choose>
       </if>
-      <!-- 일본어/한국어 논문/장: 「」 -->
+      <!-- 日本語/韓国語の論文/章: 「」 -->
       <else-if type="chapter paper-conference article-journal" match="any">
         <choose>
           <if variable="note" match="none">
@@ -104,7 +112,7 @@
     </choose>
   </macro>
 
-  <!-- 판본 매크로 -->
+  <!-- 版マクロ -->
   <macro name="edition">
     <choose>
       <if is-numeric="edition">
@@ -123,12 +131,12 @@
     </choose>
   </macro>
 
-  <!-- 출판사 매크로 -->
+  <!-- 出版社マクロ -->
   <macro name="publisher">
     <text variable="publisher"/>
   </macro>
 
-  <!-- 편집자 매크로 -->
+  <!-- 編集者マクロ -->
   <macro name="editor">
     <names variable="editor">
       <name name-as-sort-order="all" sort-separator="" delimiter="・"/>
@@ -136,7 +144,7 @@
     </names>
   </macro>
 
-  <!-- In-text citation (본문 인용) -->
+  <!-- In-text citation (本文内引用) -->
   <citation et-al-min="3" et-al-use-first="1" disambiguate-add-year-suffix="true" collapse="year">
     <sort>
       <key macro="issued"/>
@@ -150,15 +158,7 @@
     </layout>
   </citation>
 
-  <!-- Bibliography (참고문헌 목록) -->
-  <!-- 
-    정렬 순서:
-    1. 언어 (영어 먼저, 일본어/한국어 다음)
-    2. 저자명
-    3. 연도
-    
-    et-al 제거: 전체 저자 표시
-  -->
+  <!-- Bibliography (参考文献リスト) -->
   <bibliography hanging-indent="true" entry-spacing="0">
     <sort>
       <key macro="sort-key-language"/>
@@ -167,7 +167,7 @@
     </sort>
     <layout>
       <choose>
-        <!-- 영어 문헌 (note 필드가 있을 때) -->
+        <!-- 英語文献 (note フィールドがある場合) -->
         <if variable="note">
           <group delimiter="" suffix=".">
             <text macro="author"/>
@@ -188,7 +188,7 @@
             <text macro="publisher" prefix=". "/>
           </group>
         </if>
-        <!-- 일본어/한국어 문헌 (기본값) -->
+        <!-- 日本語/韓国語文献 (デフォルト) -->
         <else>
           <group delimiter="" suffix=".">
             <text macro="author"/>
