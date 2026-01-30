@@ -1,43 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <style xmlns="http://purl.org/net/xbiblio/csl" class="in-text" version="1.0" demote-non-dropping-particle="never">
   <info>
-    <title>Japanese Academic Style (Multilingual)</title>
-    <id>japanese-academic-multilingual</id>
-    <link href="http://www.zotero.org/styles/japanese-academic-multilingual" rel="self"/>
-    <category citation-format="author-date"/>
+    <title>Japanese Academic Style (Icon Only - Citation Order)</title>
+    <id>japanese-academic-icon-only-citation-order</id>
+    <link href="http://www.zotero.org/styles/japanese-academic-icon-only" rel="self"/>
+    <category citation-format="numeric"/>
     <category field="generic-base"/>
     <updated>2025-01-30T00:00:00+00:00</updated>
     <rights license="http://creativecommons.org/licenses/by-sa/3.0/">This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 License</rights>
   </info>
 
-  <!-- 英語locale -->
-  <locale xml:lang="en">
-    <terms>
-      <term name="et-al">et al.</term>
-    </terms>
-  </locale>
-
-  <!-- 日本語locale -->
   <locale xml:lang="ja">
     <terms>
       <term name="edition" form="short">版</term>
       <term name="editor" form="short">編</term>
       <term name="translator" form="short">訳</term>
-      <term name="et-al">ほか</term>
     </terms>
   </locale>
-
-  <!-- ソート用マクロ: 英語(note あり) → 日本語/韓国語(note なし) -->
-  <macro name="sort-key-language">
-    <choose>
-      <if variable="note">
-        <text value="1"/>
-      </if>
-      <else>
-        <text value="2"/>
-      </else>
-    </choose>
-  </macro>
 
   <!-- 著者名マクロ (参考文献用) -->
   <macro name="author">
@@ -47,22 +26,6 @@
         <names variable="editor"/>
         <names variable="translator"/>
         <text variable="title"/>
-      </substitute>
-    </names>
-  </macro>
-  
-  <!-- 著者名マクロ (引用用 - 姓のみ表示) -->
-  <macro name="author-short">
-    <names variable="author">
-      <name form="short" delimiter="・"/>
-      <substitute>
-        <names variable="editor">
-          <name form="short" delimiter="・"/>
-        </names>
-        <names variable="translator">
-          <name form="short" delimiter="・"/>
-        </names>
-        <text variable="title" form="short"/>
       </substitute>
     </names>
   </macro>
@@ -84,7 +47,6 @@
   <!-- タイトルマクロ -->
   <macro name="title">
     <choose>
-      <!-- 日本語/韓国語の本: 『』 -->
       <if type="book thesis" match="any">
         <choose>
           <if variable="note" match="none">
@@ -95,7 +57,6 @@
           </else>
         </choose>
       </if>
-      <!-- 日本語/韓国語の論文/章: 「」 -->
       <else-if type="chapter paper-conference article-journal" match="any">
         <choose>
           <if variable="note" match="none">
@@ -144,30 +105,22 @@
     </names>
   </macro>
 
-  <!-- In-text citation (本文内引用) -->
-  <citation et-al-min="3" et-al-use-first="1" disambiguate-add-year-suffix="true" collapse="year">
+  <!-- In-text citation: 番号のみ出力 -->
+  <citation collapse="citation-number">
     <sort>
-      <key macro="issued"/>
-      <key macro="author-short"/>
+      <key variable="citation-number"/>
     </sort>
-    <layout prefix="（" suffix="）" delimiter="；">
-      <group delimiter=" ">
-        <text macro="author-short"/>
-        <text macro="issued"/>
-      </group>
+    <layout delimiter=", ">
+      <text variable="citation-number"/>
     </layout>
   </citation>
 
-  <!-- Bibliography (参考文献リスト) -->
+  <!-- Bibliography: sortなし = 引用順 -->
   <bibliography hanging-indent="true" entry-spacing="0">
-    <sort>
-      <key macro="sort-key-language"/>
-      <key macro="author"/>
-      <key macro="issued"/>
-    </sort>
+    <!-- <sort>を削除 → citation order（引用順）で並ぶ -->
     <layout>
       <choose>
-        <!-- 英語文献 (note フィールドがある場合) -->
+        <!-- 英語文献 -->
         <if variable="note">
           <group delimiter="" suffix=".">
             <text macro="author"/>
@@ -188,7 +141,7 @@
             <text macro="publisher" prefix=". "/>
           </group>
         </if>
-        <!-- 日本語/韓国語文献 (デフォルト) -->
+        <!-- 日本語/韓国語文献 -->
         <else>
           <group delimiter="" suffix=".">
             <text macro="author"/>

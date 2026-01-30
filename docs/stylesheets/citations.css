@@ -1,21 +1,24 @@
-/* 참고문헌 각주 스타일링 - Material for MkDocs */
+/* 参考文献スタイリング - Material for MkDocs */
 
-/* 각주 참조 번호 완전히 숨기기 */
+/* ===================================
+   本文内の引用スタイル
+   =================================== */
+
+/* 各注参照番号を完全に隠す */
 a.footnote-ref {
     font-size: 0 !important;
     text-decoration: none !important;
 }
 
-/* sup 태그 안의 텍스트도 숨기기 */
-sup:has(.footnote-ref) {
+sup[id^="fnref"] {
     font-size: 0 !important;
 }
 
-sup:has(.footnote-ref) a {
+sup[id^="fnref"] a {
     font-size: 0 !important;
 }
 
-/* 아이콘으로 대체 */
+/* アイコンで代替 */
 a.footnote-ref::after {
     content: "📖";
     font-size: 0.85rem !important;
@@ -23,28 +26,61 @@ a.footnote-ref::after {
     margin-left: 0.1em;
     opacity: 0.7;
     transition: opacity 0.2s;
+    cursor: pointer;
 }
 
 a.footnote-ref:hover::after {
     opacity: 1;
 }
 
-/* 혹시 sup 안에 직접 텍스트가 있는 경우 */
-sup[id^="fnref"] {
-    font-size: 0 !important;
+/* ===================================
+   参考文献リストのハイライト
+   =================================== */
+
+/* ターゲットになった参考文献を強調 */
+.footnote li:target {
+    background-color: rgba(255, 235, 59, 0.5) !important;
+    border-left: 4px solid #ffc107 !important;
+    padding-left: 0.5em !important;
+    margin-left: -0.5em;
+    border-radius: 4px;
 }
 
-sup[id^="fnref"] a.footnote-ref::after {
+/* ===================================
+   本文に戻った時のハイライト
+   =================================== */
+
+/* sup要素がターゲットになった時 */
+sup[id^="fnref"]:target {
+    position: relative;
+}
+
+sup[id^="fnref"]:target a.footnote-ref::after {
     content: "📖";
     font-size: 0.85rem !important;
+    background-color: rgba(255, 235, 59, 0.6);
+    padding: 0.1em 0.3em;
+    border-radius: 4px;
+    opacity: 1;
 }
 
-/* 되돌아가기 화살표 */
+/* ダークモード対応 */
+[data-md-color-scheme="slate"] .footnote li:target {
+    background-color: rgba(255, 193, 7, 0.35) !important;
+    border-left: 4px solid #ffc107 !important;
+}
+
+[data-md-color-scheme="slate"] sup[id^="fnref"]:target a.footnote-ref::after {
+    background-color: rgba(255, 193, 7, 0.4);
+}
+
+/* 戻るリンク（↩）のスタイル */
 .footnote-backref {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     margin-left: 0.5em;
     text-decoration: none;
     opacity: 0.6;
+    transition: opacity 0.2s;
 }
 
 .footnote-backref:hover {
