@@ -43,8 +43,7 @@
 これは、コーパス言語学にとって深刻な問題です。もしあなたが、自然な現代の日本語を研究したいと思って収集したデータに、AIが生成したテキストが大量に含まれていたら、それを利用した研究結果は何を意味するのでしょうか。この問題に対する完璧な解決策は、まだありません。しかし、データ収集の段階で以下の点に気をつけるといいかもしれません。
 
 1. データの出所を明確にする（いつ、誰が、どのような目的で書いたか）
-2. 可能な限り、AIが生成した可能性が低い言語資源を選ぶ（青空文庫のような著作権切れの作品、公式の議事録など）
-
+2. 可能な限り、AIが生成した可能性が低い言語資源を選ぶ（青空文庫のような著作権切れの作品、公式の会議録・議事録など）
 
 !!! tip "時代を遡る"
     [Slop Evader](https://tegabrain.com/Slop-Evader)というウェブブラウザの拡張機能を利用すると、ChatGPTが公開される前の時代の情報を対象として検索することができます。この方法以外にも、[Googleの詳細検索](https://www.google.com/advanced_search?q=%E3%83%97%E3%83%AC%E3%82%B9%E3%83%AA%E3%83%AA%E3%83%BC%E3%82%B9&num=10&newwindow=1&sca_esv=8a0af9638f9b3ed2&sxsrf=AE3TifNNPzBmRnrCTjCE4jZesZ824QD3CQ:1765469604787&iflsig=AOw8s4IAAAAAaTr7tHuFiT0XkYiMmnvqu-m7MF3W8Kxs&gs_lp=Egdnd3Mtd2l6IgAqAggAMgcQIxgnGOoCMgcQIxgnGOoCMgcQIxgnGOoCMgcQIxgnGOoCMgcQIxgnGOoCMgcQIxgnGOoCMgcQIxgnGOoCMg0QIxjwBRgnGMkCGOoCMgcQIxgnGOoCMgcQIxgnGOoCSNkGUABYAHABeACQAQCYAQCgAQCqAQC4AQHIAQCYAgGgAgOoAgqYAwPxBTnzk5wh-0sskgcBMaAHALIHALgHAMIHAzAuMcgHAoAIAA)などを利用して、検索期間を指定する方法もあります。
