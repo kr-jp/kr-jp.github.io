@@ -3,842 +3,602 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Usage-based Learning 3D (Responsive V2)</title>
+    <title>用法基盤モデル — 言語パターンの可視化</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Yu Gothic', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            background: #0a0a1a;
+            color: white;
             overflow: hidden;
             height: 100vh;
         }
-        
-        #canvas-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
-        
+        #canvas-container { width: 100%; height: 100%; position: relative; }
+        canvas { display: block; }
+
         .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            z-index: 10;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none; z-index: 10;
         }
-        
-        /* [상단 1] 타이틀: 최상단 중앙 */
+
         .title-section {
-            position: absolute;
-            top: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            color: white;
-            pointer-events: auto;
-            width: 80%;
-            z-index: 20;
+            position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+            text-align: center; pointer-events: auto; z-index: 20;
         }
-        
         h1 {
-            font-size: 32px;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+            font-size: 28px;
             background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; margin-bottom: 8px;
         }
-        
-        /* [상단 2] 단계 표시창: 타이틀 아래 중앙 */
+        .subtitle { font-size: 14px; color: rgba(255,255,255,0.6); }
+
         .phase-indicator {
-            position: absolute;
-            top: 150px; /* 데스크탑 기본 위치 */
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 20px 30px;
-            border-radius: 15px;
-            border: 1px solid rgba(255,255,255,0.2);
-            pointer-events: auto;
-            color: white;
-            text-align: center;
-            width: 60%;
-            max-width: 750px;
-            min-width: 320px;
-            transition: all 0.4s ease;
-            z-index: 15;
+            position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 16px 28px; border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            pointer-events: auto; color: white; text-align: center;
+            max-width: 600px; width: 70%; min-width: 300px;
+            transition: all 0.4s ease; z-index: 15;
         }
-        
-        .phase-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #f093fb;
-            transition: color 0.3s ease;
+        .phase-title { font-size: 16px; font-weight: bold; color: #f093fb; margin-bottom: 6px; }
+        .phase-desc { font-size: 13px; line-height: 1.5; color: rgba(255,255,255,0.8); }
+
+        /* Bottom bar: controls + stats grouped together */
+        .bottom-bar {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            pointer-events: auto; z-index: 25;
         }
-        
-        .phase-desc {
-            font-size: 14px;
-            line-height: 1.6;
-            color: rgba(255,255,255,0.85);
-        }
-        
-        /* [하단 1] 정보 패널: 최하단 중앙 */
-        .info-panel {
-            position: absolute;
-            bottom: 25px;
-            left: 50%;
-            transform: translateX(-65%); /* 데스크탑: 약간 왼쪽으로 치우치게 (범례 공간 확보) */
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 18px 40px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.2);
-            display: flex;
-            gap: 20px;
-            pointer-events: auto;
-            min-height: 95px;
-            transition: all 0.3s ease;
-            z-index: 20;
-        }
-        
-        .stat { text-align: center; }
-        
-        .stat-number {
-            font-size: 32px;
-            font-weight: bold;
-            color: #fff;
-            text-shadow: 0 2px 10px rgba(102, 126, 234, 0.5);
-            transition: all 0.3s ease;
-        }
-        
-        .stat-label {
-            font-size: 13px;
-            color: rgba(255,255,255,0.7);
-            margin-top: 5px;
-            white-space: nowrap;
-        }
-        
-        /* [하단 2] 컨트롤: 정보 패널 위 */
         .controls {
-            position: absolute;
-            bottom: 150px; /* 데스크탑: 정보패널보다 위 */
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 15px;
-            pointer-events: auto;
-            align-items: center;
-            transition: all 0.3s ease;
-            z-index: 25; /* 버튼은 클릭이 중요하므로 높은 z-index */
+            display: flex; gap: 10px;
+            flex-wrap: wrap; justify-content: center;
         }
-        
         button {
-            padding: 12px 24px;
-            font-size: 14px;
-            background: rgba(102, 126, 234, 0.8);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 25px;
-            cursor: pointer;
-            transition: all 0.3s;
-            backdrop-filter: blur(10px);
-            white-space: nowrap;
+            padding: 8px 20px; font-size: 13px;
+            background: rgba(102, 126, 234, 0.4); color: white;
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 22px;
+            cursor: pointer; transition: all 0.3s;
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            white-space: nowrap; min-width: 80px;
         }
-        
         button:hover {
-            background: rgba(118, 75, 162, 0.9);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            background: rgba(118, 75, 162, 0.6);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
         }
-        
         button.active {
             background: linear-gradient(135deg, #667eea, #764ba2);
-            border-color: rgba(240, 147, 251, 0.5);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
-        }
-        
-        .phase-buttons {
-            display: flex;
-            gap: 10px;
-            padding-left: 20px;
-            border-left: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .phase-btn { padding: 10px 20px; font-size: 13px; }
-        
-        /* [우측 하단] 범례 */
-        .legend {
-            position: absolute;
-            bottom: 25px;
-            right: 110px; /* 데스크탑: 우측 하단 */
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 18px 25px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.2);
-            pointer-events: auto;
-            min-height: 95px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            transition: all 0.3s ease;
-            z-index: 20;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-            color: white;
-            font-size: 12px;
-        }
-        .legend-item:last-child { margin-bottom: 0; }
-        .legend-color { width: 16px; height: 16px; border-radius: 50%; }
-        
-        @keyframes phaseChange {
-            0% { transform: translateX(-50%) scale(1); }
-            50% { transform: translateX(-50%) scale(1.05); }
-            100% { transform: translateX(-50%) scale(1); }
-        }
-        
-        .phase-indicator.changing { animation: phaseChange 0.5s ease; }
-
-        /* --- 반응형 레이아웃 수정 (핵심 부분) --- */
-
-        /* 1. 태블릿/노트북 (중간 크기) */
-        @media (max-width: 1024px) {
-            .info-panel {
-                transform: translateX(-50%); /* 중앙 정렬로 복귀 */
-                left: 50%;
-                bottom: 20px;
-            }
-            .legend {
-                right: 20px; /* 여백 줄임 */
-                bottom: 130px; /* 정보 패널 위로 이동 (겹침 방지) */
-                min-height: auto;
-                padding: 15px;
-            }
-            .controls {
-                bottom: 240px; /* 범례보다 위로 */
-            }
+            border-color: rgba(240, 147, 251, 0.4);
         }
 
-        /* 2. 모바일 (작은 화면) */
+        .info-panel {
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 10px 32px; border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex; gap: 24px;
+        }
+        .stat { text-align: center; }
+        .stat-number {
+            font-size: 26px; font-weight: bold; color: #fff;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-label { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute; display: none;
+            background: rgba(20,20,40,0.95); backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 10px 14px; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.15);
+            font-size: 12px; color: white; pointer-events: none;
+            z-index: 30; max-width: 200px;
+            white-space: pre-line;
+        }
+        .tooltip-word { font-size: 16px; font-weight: bold; color: #f093fb; margin-bottom: 4px; }
+        .tooltip-info { color: rgba(255,255,255,0.7); line-height: 1.4; }
+
         @media (max-width: 768px) {
-            /* 상단 영역 정리 */
-            .title-section {
-                top: 15px;
-                width: 100%; /* 전체 폭 사용 */
-            }
-            h1 { font-size: 22px; margin-bottom: 5px; }
-
-            /* 범례: 모바일에서는 우측 상단으로 이동하되, 타이틀 라인과 공유 */
-            .legend {
-                top: 15px;
-                right: 10px;
-                bottom: auto; /* 하단 해제 */
-                padding: 8px 12px;
-                transform: scale(0.85); /* 약간 작게 */
-                transform-origin: top right;
-                background: rgba(255,255,255,0.15);
-            }
-            .legend-item { margin-bottom: 4px; font-size: 11px; }
-
-            /* 단계 표시창 (Phase Indicator): 상단 요소들과 겹치지 않게 충분히 내림 */
-            .phase-indicator {
-                top: 100px; /* 타이틀(15px) + 범례 높이 고려하여 충분히 내림 */
-                width: 90%;
-                padding: 15px;
-                background: rgba(255,255,255,0.08); /* 조금 더 투명하게 */
-            }
-            .phase-title { font-size: 16px; margin-bottom: 5px; }
-            .phase-desc { font-size: 12px; line-height: 1.4; }
-
-            /* 하단 영역 정리 */
-            /* 컨트롤 버튼들 */
-            .controls {
-                bottom: 110px; /* 정보 패널 위 */
-                width: 95%;
-                flex-wrap: wrap; /* 줄바꿈 허용 */
-                justify-content: center;
-                gap: 8px;
-            }
-            button { padding: 8px 16px; font-size: 12px; }
-            
-            .phase-buttons {
-                padding-left: 0;
-                border-left: none;
-                width: 100%;
-                justify-content: center;
-                margin-top: 5px;
-            }
-
-            /* 정보 패널 (최하단) */
-            .info-panel {
-                bottom: 10px;
-                width: 96%;
-                padding: 10px 5px;
-                min-height: 70px;
-                gap: 10px;
-                justify-content: space-evenly; /* 균등 분할 */
-            }
+            h1 { font-size: 20px; }
+            .phase-indicator { top: 90px; width: 90%; padding: 12px; }
+            .phase-title { font-size: 14px; }
+            .phase-desc { font-size: 11px; }
+            button { padding: 7px 14px; font-size: 11px; min-width: 70px; }
+            .info-panel { padding: 8px 18px; gap: 16px; }
             .stat-number { font-size: 20px; }
-            .stat-label { font-size: 10px; }
         }
-
-        /* 3. 가로 모드 (높이가 낮은 화면) */
         @media (max-height: 600px) {
             .title-section { top: 5px; }
-            h1 { font-size: 18px; display: inline-block; margin-right: 10px;}
-            
-            /* 가로모드에서는 공간 절약을 위해 설명 숨김 */
-            .phase-indicator {
-                top: 40px;
-                padding: 5px 15px;
-                background: transparent;
-                border: none;
-            }
+            h1 { font-size: 18px; }
+            .subtitle { display: none; }
+            .phase-indicator { top: 40px; padding: 6px 14px; background: transparent; border: none; }
             .phase-desc { display: none; }
-            .phase-title { font-size: 14px; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
-
-            .controls { bottom: 80px; }
-            .info-panel { bottom: 5px; min-height: 60px; padding: 5px; }
-            
-            .legend {
-                top: 5px;
-                right: 5px;
-                padding: 5px;
-                transform: scale(0.7);
-            }
+            .bottom-bar { bottom: 5px; gap: 6px; }
+            .info-panel { padding: 6px 16px; }
+            .stat-number { font-size: 18px; }
         }
     </style>
 </head>
 <body>
-    <div id="canvas-container"></div>
-    
+    <div id="canvas-container">
+        <canvas id="networkCanvas"></canvas>
+    </div>
+
     <div class="overlay">
         <div class="title-section">
-            <h1>データに基づくパターン学習</h1>
+            <h1>言語パターンのネットワーク</h1>
+            <div class="subtitle">用法基盤モデル — 共起関係の可視化</div>
         </div>
-        
+
         <div class="phase-indicator" id="phaseIndicator">
-            <div class="phase-title" id="phaseTitle">第1段階：限られたデータ</div>
+            <div class="phase-title" id="phaseTitle">データ収集中…</div>
             <div class="phase-desc" id="phaseDesc">
-                従来の言語研究では、限られたデータに依存していました
+                言語データが蓄積されると、単語同士の共起パターンが浮かび上がります
             </div>
         </div>
-        
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-color" style="background: #667eea;"></div>
-                <span>言語データ</span>
+
+        <div class="bottom-bar">
+            <div class="controls">
+                <button id="pauseBtn">⏸ 一時停止</button>
+                <button id="resetBtn">↻ リセット</button>
+                <button id="speedBtn" class="active">1× 通常</button>
             </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #f093fb;"></div>
-                <span>パターン</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: linear-gradient(135deg, #ffa751, #ffe259);"></div>
-                <span>言語モデル</span>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <button id="pauseBtn" onclick="toggleAnimation()">一時停止</button>
-            <button onclick="resetVisualization()">リセット</button>
-            <div class="phase-buttons">
-                <button class="phase-btn active" id="phase1Btn" onclick="setPhase(1)">第1段階</button>
-                <button class="phase-btn" id="phase2Btn" onclick="setPhase(2)">第2段階</button>
-                <button class="phase-btn" id="phase3Btn" onclick="setPhase(3)">第3段階</button>
-            </div>
-        </div>
-        
-        <div class="info-panel">
-            <div class="stat">
-                <div class="stat-number" id="dataCount">0</div>
-                <div class="stat-label">処理データ数</div>
-            </div>
-            <div class="stat">
-                <div class="stat-number" id="patternCount">0</div>
-                <div class="stat-label">パターン数</div>
-            </div>
-            <div class="stat">
-                <div class="stat-number" id="complexityLevel">1</div>
-                <div class="stat-label">モデル複雑度</div>
+            <div class="info-panel">
+                <div class="stat">
+                    <div class="stat-number" id="wordCount">0</div>
+                    <div class="stat-label">語彙数</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="linkCount">0</div>
+                    <div class="stat-label">共起関係</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="patternCount">0</div>
+                    <div class="stat-label">パターン</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-word" id="tooltipWord"></div>
+        <div class="tooltip-info" id="tooltipInfo"></div>
+    </div>
+
     <script>
-        let scene, camera, renderer, sceneGroup;
-        let centerSphere, particles = [], connections = [];
-        let patternLayers = [];
+    (() => {
+        const canvas = document.getElementById('networkCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Corpus data: word groups with co-occurrence relationships ---
+        const wordGroups = [
+            { words: ['食べる', 'ご飯', '朝', '晩', '昼'], category: '食事', color: '#667eea' },
+            { words: ['食べる', 'パン', '焼く', 'バター', 'トースト'], category: '食事', color: '#667eea' },
+            { words: ['飲む', 'コーヒー', '朝', 'カフェ', 'お茶'], category: '飲み物', color: '#5b8def' },
+            { words: ['読む', '本', '図書館', '小説', '新聞'], category: '読書', color: '#7c6eea' },
+            { words: ['書く', '手紙', 'メール', '送る', '届く'], category: '通信', color: '#9b6eea' },
+            { words: ['歩く', '道', '散歩', '公園', '走る'], category: '移動', color: '#ea6eb7' },
+            { words: ['見る', 'テレビ', '映画', '番組', '動画'], category: '視聴', color: '#f093fb' },
+            { words: ['話す', '友達', '電話', '会話', '笑う'], category: '会話', color: '#ea8c6e' },
+            { words: ['勉強', '学校', '先生', '授業', 'テスト'], category: '学習', color: '#6eeaa8' },
+            { words: ['寝る', '夜', '起きる', '朝', '眠い'], category: '生活', color: '#eae16e' },
+            // Grammar patterns
+            { words: ['〜てしまう', '〜ちゃう', '食べ', '忘れ', '言っ'], category: '文法', color: '#ff6b9d' },
+            { words: ['〜ている', '〜てる', '読ん', '待っ', '考え'], category: '文法', color: '#ff6b9d' },
+        ];
+
+        // --- State ---
+        let nodes = [];
+        let links = [];
         let isAnimating = true;
-        let dataProcessed = 0, patternsFormed = 0, modelComplexity = 1;
-        let isDragging = false, previousMouseX = 0, previousMouseY = 0;
-        let rotationX = 0, rotationY = 0;
-        
-        // Learning phases
-        const PHASE_1_START = 0;
-        const PHASE_2_START = 25;
-        const PHASE_3_START = 75;
-        const MAX_DATA = 150;
-        
-        let currentPhase = 1;
-        let particleSpawnRate = 1500;
-        let lastSpawnTime = 0;
-        let manualPhase = false;
-        
-        function init() {
-            scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x0f0c29, 0.002);
-            
-            sceneGroup = new THREE.Group();
-            scene.add(sceneGroup);
-            
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 50);
-            camera.lookAt(0, 0, 0);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x0f0c29, 1);
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-            
-            const sphereGeometry = new THREE.SphereGeometry(5, 32, 32);
-            const sphereMaterial = new THREE.MeshPhongMaterial({
-                color: 0xffa751,
-                emissive: 0xffb347,
-                emissiveIntensity: 0.4,
-                shininess: 100,
-                transparent: true,
-                opacity: 0.9
-            });
-            centerSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            sceneGroup.add(centerSphere);
-            
-            const glowGeometry = new THREE.SphereGeometry(5.5, 32, 32);
-            const glowMaterial = new THREE.MeshBasicMaterial({
-                color: 0xffe259,
-                transparent: true,
-                opacity: 0.3
-            });
-            const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
-            centerSphere.add(glowSphere);
-            
-            createPatternLayers();
-            
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-            scene.add(ambientLight);
-            
-            const pointLight1 = new THREE.PointLight(0x667eea, 1, 100);
-            pointLight1.position.set(20, 20, 20);
-            scene.add(pointLight1);
-            
-            const pointLight2 = new THREE.PointLight(0xf093fb, 1, 100);
-            pointLight2.position.set(-20, -20, 20);
-            scene.add(pointLight2);
-            
-            const pointLight3 = new THREE.PointLight(0xffa751, 0.8, 80);
-            pointLight3.position.set(0, 0, 30);
-            scene.add(pointLight3);
-            
-            for (let i = 0; i < 10; i++) {
-                createParticle();
-            }
-            
-            renderer.domElement.addEventListener('mousedown', onMouseDown);
-            renderer.domElement.addEventListener('mousemove', onMouseMove);
-            renderer.domElement.addEventListener('mouseup', onMouseUp);
-            renderer.domElement.addEventListener('mouseleave', onMouseUp);
-            renderer.domElement.addEventListener('wheel', onWheel);
-            
-            renderer.domElement.addEventListener('touchstart', onTouchStart, {passive: false});
-            renderer.domElement.addEventListener('touchmove', onTouchMove, {passive: false});
-            renderer.domElement.addEventListener('touchend', onMouseUp);
-            
-            window.addEventListener('resize', onWindowResize);
-            
-            animate();
+        let speed = 1;
+        let groupIndex = 0;
+        let wordIndex = 0;
+        let lastAddTime = 0;
+        let addInterval = 800;
+        let patternsFound = 0;
+        let isDragging = false;
+        let dragNode = null;
+        let mouseX = 0, mouseY = 0;
+        let hoverNode = null;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
-        
-        function createPatternLayers() {
-            patternLayers.forEach(layer => centerSphere.remove(layer));
-            patternLayers = [];
-            
-            const baseSegments = 8;
-            const segmentMultiplier = Math.max(1, modelComplexity);
-            const segments = Math.min(baseSegments + segmentMultiplier * 2, 32);
-            
-            for (let i = 0; i < 3; i++) {
-                const radius = 6 + i * 0.5;
-                const opacity = 0.15 - i * 0.03;
-                
-                const patternGeometry = new THREE.SphereGeometry(radius, segments, segments);
-                const patternMaterial = new THREE.MeshBasicMaterial({
-                    color: 0xf093fb,
-                    transparent: true,
-                    opacity: opacity,
-                    wireframe: true,
-                    wireframeLinewidth: 1
-                });
-                
-                const patternMesh = new THREE.Mesh(patternGeometry, patternMaterial);
-                patternMesh.userData.rotationSpeed = 0.001 + i * 0.0005;
-                centerSphere.add(patternMesh);
-                patternLayers.push(patternMesh);
-            }
+
+        function findNode(word) {
+            return nodes.find(n => n.word === word);
         }
-        
-        function updatePatternLayers() {
-            patternLayers.forEach(layer => centerSphere.remove(layer));
-            patternLayers = [];
-            createPatternLayers();
-        }
-        
-        function updatePhase() {
-            if (manualPhase) return;
-            
-            if (dataProcessed >= PHASE_3_START && currentPhase < 3) {
-                applyPhase(3, false);
-            } else if (dataProcessed >= PHASE_2_START && currentPhase < 2) {
-                applyPhase(2, false);
+
+        function addWord(word, category, color) {
+            let existing = findNode(word);
+            if (existing) {
+                existing.frequency++;
+                existing.targetRadius = Math.min(6 + existing.frequency * 1.5, 24);
+                return existing;
             }
-        }
-        
-        function setPhase(phase) {
-            manualPhase = true;
-            applyPhase(phase, true);
-            
-            document.querySelectorAll('.phase-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(`phase${phase}Btn`).classList.add('active');
-        }
-        
-        function applyPhase(phase, resetData = false) {
-            currentPhase = phase;
-            
-            const indicator = document.getElementById('phaseIndicator');
-            indicator.classList.add('changing');
-            setTimeout(() => indicator.classList.remove('changing'), 500);
-            
-            if (resetData) {
-                particles.forEach(p => sceneGroup.remove(p));
-                particles = [];
-                connections.forEach(c => sceneGroup.remove(c.line));
-                connections = [];
-                
-                if (phase === 1) {
-                    dataProcessed = PHASE_1_START;
-                } else if (phase === 2) {
-                    dataProcessed = PHASE_2_START;
-                } else if (phase === 3) {
-                    dataProcessed = PHASE_3_START;
-                }
-                
-                patternsFormed = Math.floor(dataProcessed / 8);
-                modelComplexity = Math.floor(dataProcessed / 15) + 1;
-                
-                const scale = 1 + (modelComplexity * 0.04);
-                centerSphere.scale.set(scale, scale, scale);
-                updatePatternLayers();
-                
-                updateStats();
-                
-                for (let i = 0; i < 10; i++) {
-                    createParticle();
-                }
-            }
-            
-            if (phase === 1) {
-                particleSpawnRate = 1500;
-                document.getElementById('phaseTitle').textContent = '第1段階：限られたデータ';
-                document.getElementById('phaseDesc').innerHTML = 
-                    '従来の言語研究では、限られたデータに依存していました。';
-            } else if (phase === 2) {
-                particleSpawnRate = 600;
-                document.getElementById('phaseTitle').textContent = '第2段階：データの拡大';
-                document.getElementById('phaseDesc').innerHTML = 
-                    'コンピュータの発達に伴い、多くのデータを分析することが可能になりました。';
-            } else if (phase === 3) {
-                particleSpawnRate = 250;
-                document.getElementById('phaseTitle').textContent = '第3段階：超大規模コーパス';
-                document.getElementById('phaseDesc').innerHTML = 
-                    '現在は超大規模コーパスを用いて、言語の「生きた姿」を捉えようとしています。';
-            }
-            
-            if (!resetData) {
-                document.querySelectorAll('.phase-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                document.getElementById(`phase${phase}Btn`).classList.add('active');
-            }
-        }
-        
-        function createParticle() {
-            if (dataProcessed >= MAX_DATA) return;
-            
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
             const angle = Math.random() * Math.PI * 2;
-            const height = (Math.random() - 0.5) * 60;
-            const radius = 40 + Math.random() * 20;
-            
-            const x = Math.cos(angle) * radius;
-            const y = height;
-            const z = Math.sin(angle) * radius;
-            
-            const geometry = new THREE.SphereGeometry(0.3, 8, 8);
-            
-            const color = 0x667eea;
-            
-            const material = new THREE.MeshBasicMaterial({
-                color: color,
-                transparent: true,
-                opacity: 0
-            });
-            
-            const particle = new THREE.Mesh(geometry, material);
-            particle.position.set(x, y, z);
-            
-            particle.userData = {
-                targetX: 0,
-                targetY: 0,
-                targetZ: 0,
-                speed: 0.015 + Math.random() * 0.025,
-                life: 1.0,
-                fadeIn: true
+            const dist = 100 + Math.random() * 150;
+
+            const node = {
+                word,
+                category,
+                color,
+                x: cx + Math.cos(angle) * dist,
+                y: cy + Math.sin(angle) * dist,
+                vx: 0, vy: 0,
+                radius: 0,
+                targetRadius: 8,
+                frequency: 1,
+                opacity: 0,
+                born: Date.now()
             };
-            
-            sceneGroup.add(particle);
-            particles.push(particle);
-            
-            const lineMaterial = new THREE.LineBasicMaterial({
-                color: color,
-                transparent: true,
+            nodes.push(node);
+            return node;
+        }
+
+        function addLink(a, b) {
+            let existing = links.find(l =>
+                (l.source === a && l.target === b) || (l.source === b && l.target === a)
+            );
+            if (existing) {
+                existing.strength = Math.min(existing.strength + 0.3, 4);
+                return;
+            }
+            links.push({
+                source: a, target: b,
+                strength: 0.5,
                 opacity: 0
             });
-            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-                particle.position,
-                new THREE.Vector3(0, 0, 0)
-            ]);
-            const line = new THREE.Line(lineGeometry, lineMaterial);
-            sceneGroup.add(line);
-            connections.push({ line, particle });
-        }
-        
-        function animate() {
-            if (!isAnimating) return;
-            requestAnimationFrame(animate);
-            
-            const currentTime = Date.now();
-            
-            if (currentTime - lastSpawnTime > particleSpawnRate && dataProcessed < MAX_DATA) {
-                const count = currentPhase === 1 ? 1 : currentPhase === 2 ? 2 : 3;
-                for (let i = 0; i < count; i++) {
-                    createParticle();
-                }
-                lastSpawnTime = currentTime;
-            }
-            
-            sceneGroup.rotation.y = rotationY;
-            sceneGroup.rotation.x = rotationX;
-            
-            centerSphere.rotation.y += 0.005;
-            centerSphere.rotation.x = Math.sin(Date.now() * 0.0005) * 0.2;
-            
-            patternLayers.forEach((layer, index) => {
-                layer.rotation.y += layer.userData.rotationSpeed;
-                layer.rotation.x += layer.userData.rotationSpeed * 0.5;
-            });
-            
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const particle = particles[i];
-                const data = particle.userData;
-                
-                if (data.fadeIn && particle.material.opacity < 0.8) {
-                    particle.material.opacity += 0.05;
-                    if (particle.material.opacity >= 0.8) {
-                        data.fadeIn = false;
-                    }
-                }
-                
-                particle.position.x += (data.targetX - particle.position.x) * data.speed;
-                particle.position.y += (data.targetY - particle.position.y) * data.speed;
-                particle.position.z += (data.targetZ - particle.position.z) * data.speed;
-                
-                const distance = particle.position.length();
-                if (!data.fadeIn) {
-                    particle.material.opacity = Math.min(distance / 30, 0.8);
-                }
-                
-                if (distance < 6) {
-                    sceneGroup.remove(particle);
-                    particles.splice(i, 1);
-                    dataProcessed++;
-                    
-                    if (dataProcessed % 8 === 0) {
-                        patternsFormed++;
-                        const oldComplexity = modelComplexity;
-                        modelComplexity = Math.floor(dataProcessed / 15) + 1;
-                        
-                        if (modelComplexity !== oldComplexity) {
-                            updatePatternLayers();
-                        }
-                        
-                        const scale = 1 + (modelComplexity * 0.04);
-                        centerSphere.scale.set(scale, scale, scale);
-                    }
-                    
-                    updateStats();
-                    updatePhase();
-                }
-            }
-            
-            connections.forEach(({ line, particle }, index) => {
-                if (!particles.includes(particle)) {
-                    sceneGroup.remove(line);
-                    connections.splice(index, 1);
-                } else {
-                    const positions = line.geometry.attributes.position.array;
-                    positions[0] = particle.position.x;
-                    positions[1] = particle.position.y;
-                    positions[2] = particle.position.z;
-                    line.geometry.attributes.position.needsUpdate = true;
-                    
-                    const distance = particle.position.length();
-                    line.material.opacity = Math.min(distance / 50, particle.material.opacity * 0.4);
-                }
-            });
-            
-            renderer.render(scene, camera);
-        }
-        
-        function updateStats() {
-            document.getElementById('dataCount').textContent = dataProcessed;
-            document.getElementById('patternCount').textContent = patternsFormed;
-            document.getElementById('complexityLevel').textContent = modelComplexity;
-        }
-        
-        function onMouseDown(event) {
-            isDragging = true;
-            previousMouseX = event.clientX;
-            previousMouseY = event.clientY;
         }
 
-        function onTouchStart(event) {
-            if (event.touches.length === 1) {
-                isDragging = true;
-                previousMouseX = event.touches[0].clientX;
-                previousMouseY = event.touches[0].clientY;
+        function addNextWord() {
+            if (groupIndex >= wordGroups.length) {
+                groupIndex = 0;
             }
-        }
 
-        function onTouchMove(event) {
-            if (isDragging && event.touches.length === 1) {
-                event.preventDefault();
-                const deltaX = event.touches[0].clientX - previousMouseX;
-                const deltaY = event.touches[0].clientY - previousMouseY;
-                
-                rotationY += deltaX * 0.01;
-                rotationX += deltaY * 0.01;
-                
-                rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX));
-                
-                previousMouseX = event.touches[0].clientX;
-                previousMouseY = event.touches[0].clientY;
+            const group = wordGroups[groupIndex];
+            const word = group.words[wordIndex];
+            const node = addWord(word, group.category, group.color);
+
+            // Link to previously added words in same group
+            for (let i = 0; i < wordIndex; i++) {
+                const prev = findNode(group.words[i]);
+                if (prev) addLink(node, prev);
             }
-        }
-        
-        function onMouseMove(event) {
-            if (isDragging) {
-                const deltaX = event.clientX - previousMouseX;
-                const deltaY = event.clientY - previousMouseY;
-                
-                rotationY += deltaX * 0.01;
-                rotationX += deltaY * 0.01;
-                
-                rotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotationX));
-                
-                previousMouseX = event.clientX;
-                previousMouseY = event.clientY;
+
+            wordIndex++;
+            if (wordIndex >= group.words.length) {
+                wordIndex = 0;
+                groupIndex++;
+                patternsFound++;
             }
-        }
-        
-        function onMouseUp() {
-            isDragging = false;
-        }
-        
-        function onWheel(event) {
-            event.preventDefault();
-            camera.position.z += event.deltaY * 0.05;
-            camera.position.z = Math.max(20, Math.min(100, camera.position.z));
-        }
-        
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-        
-        function toggleAnimation() {
-            isAnimating = !isAnimating;
-            const btn = document.getElementById('pauseBtn');
-            if (isAnimating) {
-                animate();
-                btn.textContent = '一時停止';
-            } else {
-                btn.textContent = '再生';
-            }
-        }
-        
-        function resetVisualization() {
-            particles.forEach(p => sceneGroup.remove(p));
-            particles = [];
-            connections.forEach(c => sceneGroup.remove(c.line));
-            connections = [];
-            
-            dataProcessed = 0;
-            patternsFormed = 0;
-            modelComplexity = 1;
-            currentPhase = 1;
-            particleSpawnRate = 1500;
-            lastSpawnTime = 0;
-            manualPhase = false;
+
             updateStats();
-            
-            applyPhase(1, false);
-            document.querySelectorAll('.phase-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById('phase1Btn').classList.add('active');
-            
-            centerSphere.scale.set(1, 1, 1);
-            updatePatternLayers();
-            
-            for (let i = 0; i < 10; i++) {
-                createParticle();
+            updatePhaseText();
+        }
+
+        function updateStats() {
+            document.getElementById('wordCount').textContent = nodes.length;
+            document.getElementById('linkCount').textContent = links.length;
+            document.getElementById('patternCount').textContent = patternsFound;
+        }
+
+        function updatePhaseText() {
+            const n = nodes.length;
+            const el = document.getElementById('phaseTitle');
+            const desc = document.getElementById('phaseDesc');
+
+            if (n < 10) {
+                el.textContent = 'データ収集中…';
+                desc.textContent = '言語データが蓄積されると、単語同士の共起パターンが浮かび上がります';
+            } else if (n < 25) {
+                el.textContent = 'パターンが見え始めています';
+                desc.textContent = '同じ文脈で使われる単語同士が近づき、クラスターを形成しています';
+            } else if (n < 40) {
+                el.textContent = 'ネットワーク構造の発達';
+                desc.textContent = '共起頻度の高いペアほど結びつきが強くなり、コロケーションとして定着します';
+            } else {
+                el.textContent = '言語知識の構造化';
+                desc.textContent = '十分なデータから、文法パターンや慣用表現が浮かび上がりました';
             }
-            
+        }
+
+        // --- Physics simulation ---
+        function simulate() {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            // Center gravity
+            nodes.forEach(node => {
+                const dx = cx - node.x;
+                const dy = cy - node.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 0) {
+                    node.vx += (dx / dist) * 0.05;
+                    node.vy += (dy / dist) * 0.05;
+                }
+            });
+
+            // Node repulsion
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const a = nodes[i], b = nodes[j];
+                    let dx = b.x - a.x;
+                    let dy = b.y - a.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 1) dist = 1;
+                    const minDist = 50;
+                    if (dist < minDist) {
+                        const force = (minDist - dist) / dist * 0.8;
+                        const fx = dx * force;
+                        const fy = dy * force;
+                        a.vx -= fx; a.vy -= fy;
+                        b.vx += fx; b.vy += fy;
+                    }
+                }
+            }
+
+            // Link attraction
+            links.forEach(link => {
+                const a = link.source, b = link.target;
+                let dx = b.x - a.x;
+                let dy = b.y - a.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 1) dist = 1;
+                const targetDist = 60 - link.strength * 5;
+                const force = (dist - targetDist) / dist * 0.02 * link.strength;
+                const fx = dx * force;
+                const fy = dy * force;
+                a.vx += fx; a.vy += fy;
+                b.vx -= fx; b.vy -= fy;
+            });
+
+            // Apply velocity with damping
+            nodes.forEach(node => {
+                if (node === dragNode) return;
+                node.vx *= 0.85;
+                node.vy *= 0.85;
+                node.x += node.vx;
+                node.y += node.vy;
+
+                // Keep in bounds
+                const margin = 60;
+                node.x = Math.max(margin, Math.min(canvas.width - margin, node.x));
+                node.y = Math.max(margin, Math.min(canvas.height - margin, node.y));
+            });
+
+            // Animate properties
+            nodes.forEach(node => {
+                node.opacity = Math.min(node.opacity + 0.03, 1);
+                node.radius += (node.targetRadius - node.radius) * 0.08;
+            });
+            links.forEach(link => {
+                link.opacity = Math.min(link.opacity + 0.02, 0.8);
+            });
+        }
+
+        // --- Helper: get connected nodes ---
+        function getConnectedNodes(node) {
+            const connected = new Set();
+            links.forEach(l => {
+                if (l.source === node) connected.add(l.target);
+                if (l.target === node) connected.add(l.source);
+            });
+            return connected;
+        }
+
+        // --- Helper: parse hex color to RGB ---
+        function hexToRgb(hex) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return { r, g, b };
+        }
+
+        // --- Render ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const connectedToHover = hoverNode ? getConnectedNodes(hoverNode) : new Set();
+            const dimming = hoverNode !== null;
+
+            // Draw links
+            links.forEach(link => {
+                const a = link.source, b = link.target;
+                let alpha = link.opacity * 0.5;
+                const width = link.strength;
+
+                // Color links by source node category color
+                const linkColor = hexToRgb(a.color);
+
+                if (dimming) {
+                    const isHighlighted = (a === hoverNode || b === hoverNode);
+                    if (isHighlighted) {
+                        alpha = Math.min(link.opacity * 0.9, 0.8);
+                    } else {
+                        alpha *= 0.15;
+                    }
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+                ctx.strokeStyle = `rgba(${linkColor.r}, ${linkColor.g}, ${linkColor.b}, ${alpha})`;
+                ctx.lineWidth = width;
+                ctx.stroke();
+            });
+
+            // Draw nodes
+            nodes.forEach(node => {
+                const r = node.radius;
+                if (r < 0.5) return;
+
+                let nodeAlpha = node.opacity;
+                if (dimming && node !== hoverNode && !connectedToHover.has(node)) {
+                    nodeAlpha *= 0.25;
+                }
+
+                // Glow
+                const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, r * 3);
+                glow.addColorStop(0, node.color + (dimming && nodeAlpha < 0.5 ? '15' : '40'));
+                glow.addColorStop(1, node.color + '00');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, r * 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Node circle
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+                const isHighlighted = node === hoverNode || connectedToHover.has(node);
+                ctx.fillStyle = node.color + (isHighlighted ? 'ff' : (dimming ? '40' : 'cc'));
+                ctx.fill();
+
+                if (node === hoverNode) {
+                    ctx.strokeStyle = '#ffffffaa';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else if (connectedToHover.has(node)) {
+                    ctx.strokeStyle = '#ffffff44';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+
+                // Label
+                const fontSize = Math.max(10, Math.min(r * 1.2, 16));
+                ctx.font = `bold ${fontSize}px 'Yu Gothic', sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = `rgba(255,255,255,${nodeAlpha * 0.95})`;
+                ctx.fillText(node.word, node.x, node.y - r - 10);
+            });
+        }
+
+        // --- Animation loop ---
+        function animate(timestamp) {
+            requestAnimationFrame(animate);
+
+            if (isAnimating) {
+                if (timestamp - lastAddTime > addInterval / speed) {
+                    addNextWord();
+                    lastAddTime = timestamp;
+                }
+                simulate();
+            }
+
+            draw();
+        }
+
+        // --- Interaction ---
+        function getNodeAt(x, y) {
+            for (let i = nodes.length - 1; i >= 0; i--) {
+                const n = nodes[i];
+                const dx = x - n.x;
+                const dy = y - n.y;
+                if (dx * dx + dy * dy < (n.radius + 8) * (n.radius + 8)) {
+                    return n;
+                }
+            }
+            return null;
+        }
+
+        canvas.addEventListener('mousedown', e => {
+            const node = getNodeAt(e.clientX, e.clientY);
+            if (node) {
+                isDragging = true;
+                dragNode = node;
+            }
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            if (isDragging && dragNode) {
+                dragNode.x = e.clientX;
+                dragNode.y = e.clientY;
+                dragNode.vx = 0;
+                dragNode.vy = 0;
+            }
+
+            const node = getNodeAt(e.clientX, e.clientY);
+            hoverNode = node;
+            const tooltip = document.getElementById('tooltip');
+            if (node) {
+                canvas.style.cursor = 'pointer';
+                const connCount = links.filter(l => l.source === node || l.target === node).length;
+                document.getElementById('tooltipWord').textContent = node.word;
+                document.getElementById('tooltipInfo').textContent =
+                    `カテゴリー: ${node.category}\n出現回数: ${node.frequency}\n共起関係: ${connCount}`;
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.clientX + 15) + 'px';
+                tooltip.style.top = (e.clientY - 10) + 'px';
+            } else {
+                canvas.style.cursor = 'default';
+                tooltip.style.display = 'none';
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => { isDragging = false; dragNode = null; });
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false; dragNode = null; hoverNode = null;
+            document.getElementById('tooltip').style.display = 'none';
+        });
+
+        // Touch
+        canvas.addEventListener('touchstart', e => {
+            const t = e.touches[0];
+            const node = getNodeAt(t.clientX, t.clientY);
+            if (node) { isDragging = true; dragNode = node; e.preventDefault(); }
+        }, { passive: false });
+        canvas.addEventListener('touchmove', e => {
+            if (isDragging && dragNode) {
+                dragNode.x = e.touches[0].clientX;
+                dragNode.y = e.touches[0].clientY;
+                dragNode.vx = 0; dragNode.vy = 0;
+                e.preventDefault();
+            }
+        }, { passive: false });
+        canvas.addEventListener('touchend', () => { isDragging = false; dragNode = null; });
+
+        // UI buttons
+        const pauseBtn = document.getElementById('pauseBtn');
+        const speedBtn = document.getElementById('speedBtn');
+
+        pauseBtn.addEventListener('click', () => {
+            isAnimating = !isAnimating;
+            pauseBtn.textContent = isAnimating ? '⏸ 一時停止' : '▶ 再生';
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            nodes = []; links = []; groupIndex = 0; wordIndex = 0;
+            patternsFound = 0; lastAddTime = 0;
+            updateStats(); updatePhaseText();
             if (!isAnimating) {
                 isAnimating = true;
-                document.getElementById('pauseBtn').textContent = '一時停止';
-                animate();
+                pauseBtn.textContent = '⏸ 一時停止';
             }
-        }
-        
-        init();
+        });
+
+        speedBtn.addEventListener('click', () => {
+            if (speed === 1) { speed = 3; speedBtn.textContent = '3× 高速'; }
+            else if (speed === 3) { speed = 0.5; speedBtn.textContent = '½× 低速'; }
+            else { speed = 1; speedBtn.textContent = '1× 通常'; }
+        });
+
+        // Init
+        window.addEventListener('resize', resize);
+        resize();
+        requestAnimationFrame(animate);
+    })();
     </script>
 </body>
 </html>

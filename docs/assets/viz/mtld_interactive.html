@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTLD計算の可視化</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f5;
+    --bg3: #e8e8e8;
+    --text: #1a1a1a;
+    --text2: #555;
+    --text3: #888;
+    --accent: #534AB7;
+    --accent-light: #EEEDFE;
+    --accent-text: #3C3489;
+    --info-bg: #E6F1FB;
+    --info-text: #185FA5;
+    --warn: #BA7517;
+    --border: rgba(0,0,0,.12);
+    --seg-done: #E6F1FB;
+    --seg-done-text: #185FA5;
+    --font: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    --mono: "SF Mono", "Cascadia Code", "Source Han Code JP", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1e;
+      --bg2: #2a2a2a;
+      --bg3: #353535;
+      --text: #e0e0e0;
+      --text2: #aaa;
+      --text3: #777;
+      --accent: #AFA9EC;
+      --accent-light: #26215C;
+      --accent-text: #CECBF6;
+      --info-bg: #042C53;
+      --info-text: #85B7EB;
+      --warn: #EF9F27;
+      --border: rgba(255,255,255,.12);
+      --seg-done: #042C53;
+      --seg-done-text: #85B7EB;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px 20px;
+    line-height: 1.6;
+    font-size: 14px;
+  }
+
+  /* --- Legend --- */
+  .legend {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    font-size: 12px; color: var(--text2); margin-bottom: 10px;
+  }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+
+  /* --- Tokens --- */
+  #tokens { line-height: 2.1; margin: 6px 0 12px; min-height: 60px; }
+  .tok {
+    display: inline-block; padding: 2px 7px; margin: 2px;
+    border-radius: 4px; font-size: 13px; font-family: var(--mono);
+    transition: all .25s ease; background: var(--bg2); color: var(--text2);
+    border: 1px solid transparent;
+  }
+  .tok.active {
+    background: var(--accent); color: #fff; font-weight: 600;
+    border-color: var(--accent); transform: scale(1.05);
+  }
+  .tok.done { background: var(--seg-done); color: var(--seg-done-text); }
+  .tok.new-word { border-color: var(--accent); }
+
+  /* --- TTR bar --- */
+  .ttr-section { margin: 0 0 10px; }
+  .ttr-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); }
+  .ttr-track {
+    flex: 1; height: 10px; background: var(--bg3);
+    border-radius: 5px; overflow: visible; position: relative;
+  }
+  .ttr-fill {
+    height: 100%; border-radius: 5px;
+    background: var(--accent); transition: width .3s ease;
+  }
+  .ttr-fill.below { background: var(--warn); }
+  .thresh-line {
+    position: absolute; left: 72%; top: -3px; bottom: -3px;
+    border-left: 2px dashed var(--warn); opacity: .7;
+  }
+  .ttr-val {
+    min-width: 44px; text-align: right;
+    font-family: var(--mono); font-weight: 600; font-size: 13px; color: var(--text);
+  }
+  .thresh-label { font-size: 11px; color: var(--text3); text-align: right; margin-top: 1px; }
+
+  /* --- Info row --- */
+  .info-row {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    margin: 8px 0; font-size: 13px; color: var(--text2);
+  }
+  .info-row b { color: var(--text); font-weight: 600; }
+
+  /* --- Segment log --- */
+  .seg-log {
+    margin: 8px 0; font-size: 12px; color: var(--text2);
+    max-height: 80px; overflow-y: auto;
+  }
+  .seg-log div {
+    padding: 3px 8px; border-radius: 3px; margin: 2px 0;
+    background: var(--bg2);
+  }
+  .seg-log div span { font-family: var(--mono); color: var(--accent-text); font-weight: 500; }
+
+  /* --- Result --- */
+  #result {
+    display: none; padding: 12px 16px; border-radius: 8px;
+    background: var(--info-bg); color: var(--info-text);
+    font-size: 13px; margin: 10px 0; line-height: 1.7;
+  }
+  #result b { font-weight: 600; }
+
+  /* --- Buttons --- */
+  .btn-row { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+  .btn {
+    padding: 7px 18px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg2);
+    color: var(--text); font-size: 13px; cursor: pointer;
+    font-family: var(--font); transition: all .15s;
+  }
+  .btn:hover { border-color: var(--accent); background: var(--accent-light); }
+  .btn:disabled { opacity: .35; cursor: default; }
+  .btn:disabled:hover { border-color: var(--border); background: var(--bg2); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { opacity: .9; }
+  .btn.primary:disabled { opacity: .35; }
+
+  /* --- Speed control --- */
+  .speed-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text3); margin-top: 4px;
+  }
+  .speed-row input[type="range"] { width: 80px; }
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <span><span class="dot" style="background:var(--bg2)"></span> 既出語</span>
+  <span><span class="dot" style="background:var(--accent)"></span> 現在の語</span>
+  <span><span class="dot" style="background:var(--seg-done)"></span> セグメント完了</span>
+</div>
+
+<div id="tokens"></div>
+
+<div class="ttr-section">
+  <div class="ttr-row">
+    <span style="min-width:26px">TTR</span>
+    <div class="ttr-track">
+      <div id="ttr-bar" class="ttr-fill" style="width:100%"></div>
+      <div class="thresh-line"></div>
+    </div>
+    <span id="ttr-val" class="ttr-val">1.000</span>
+  </div>
+  <div class="thresh-label">閾値 = 0.720</div>
+</div>
+
+<div class="info-row">
+  <span>位置: <b id="pos-val">0</b> / <b id="total-val">-</b></span>
+  <span>異なり語数: <b id="types-val">0</b></span>
+  <span>延べ語数（区間内）: <b id="tokens-in-seg">0</b></span>
+  <span>完了セグメント: <b id="seg-val">0</b></span>
+</div>
+
+<div id="seg-log" class="seg-log"></div>
+<div id="result"></div>
+
+<div class="btn-row">
+  <button class="btn primary" id="btn-step" onclick="step()">次の語 →</button>
+  <button class="btn" id="btn-auto" onclick="autoRun()">自動再生 ▶</button>
+  <button class="btn" onclick="reset()">リセット</button>
+</div>
+<div class="speed-row">
+  <span>速度:</span>
+  <input type="range" id="speed" min="100" max="800" value="400" step="50">
+  <span id="speed-label">400ms</span>
+</div>
+
+<script>
+const words = [
+  "私","は","毎日","大学","で","言語学","を","勉強","し","て",
+  "いる","私","の","専門","は","コーパス","言語学","で","コーパス","を",
+  "使っ","て","言語","の","特徴","を","分析","する","こと","が","できる"
+];
+const THRESHOLD = 0.72;
+
+let pos = 0;
+let types = new Set();
+let segments = 0;
+let segStart = 0;
+let autoId = null;
+let done = false;
+let segLog = [];
+
+const $ = id => document.getElementById(id);
+
+function render() {
+  let h = "";
+  words.forEach((w, i) => {
+    let cls = "tok";
+    if (i < segStart) cls += " done";
+    if (i === pos - 1 && !done) {
+      cls += " active";
+      if (wasNew) cls += " new-word";
+    }
+    h += `<span class="${cls}">${w}</span>`;
+  });
+  $("tokens").innerHTML = h;
+  $("total-val").textContent = words.length;
+}
+
+let wasNew = false;
+
+function step() {
+  if (done) return;
+  if (pos >= words.length) { finish(); return; }
+
+  const w = words[pos];
+  wasNew = !types.has(w);
+  types.add(w);
+  pos++;
+
+  const tokensInSeg = pos - segStart;
+  const ttr = types.size / tokensInSeg;
+
+  $("ttr-bar").style.width = (ttr * 100) + "%";
+  $("ttr-bar").classList.toggle("below", ttr < THRESHOLD);
+  $("ttr-val").textContent = ttr.toFixed(3);
+  $("pos-val").textContent = pos;
+  $("types-val").textContent = types.size;
+  $("tokens-in-seg").textContent = tokensInSeg;
+
+  if (ttr < THRESHOLD && pos < words.length) {
+    segments++;
+    segLog.push({n: segments, len: tokensInSeg, ttr: ttr.toFixed(3)});
+    renderSegLog();
+    $("seg-val").textContent = segments;
+    types = new Set();
+    segStart = pos;
+    $("ttr-bar").style.width = "100%";
+    $("ttr-bar").classList.remove("below");
+    $("ttr-val").textContent = "1.000";
+    $("types-val").textContent = "0";
+    $("tokens-in-seg").textContent = "0";
+  }
+
+  render();
+  if (pos >= words.length) finish();
+}
+
+function renderSegLog() {
+  let h = "";
+  segLog.forEach(s => {
+    h += `<div>セグメント${s.n}: <span>${s.len}語</span>（TTR=${s.ttr}で閾値を下回った）</div>`;
+  });
+  $("seg-log").innerHTML = h;
+}
+
+function finish() {
+  done = true;
+  if (autoId) { clearInterval(autoId); autoId = null; $("btn-auto").textContent = "自動再生 ▶"; }
+
+  const remaining = pos - segStart;
+  const currentTTR = types.size / remaining;
+  const partial = (1 - currentTTR) / (1 - THRESHOLD);
+  const denom = segments + partial;
+  const mtld = words.length / denom;
+
+  $("result").style.display = "block";
+  $("result").innerHTML =
+    `<b>計算結果（順方向）</b><br>` +
+    `完了セグメント: ${segments}<br>` +
+    `残余: ${remaining}語、TTR=${currentTTR.toFixed(3)} → 割合 = (1 − ${currentTTR.toFixed(3)}) ÷ (1 − 0.720) = <b>${partial.toFixed(3)}</b><br>` +
+    `<b>MTLD = ${words.length} ÷ (${segments} + ${partial.toFixed(3)}) = ${mtld.toFixed(1)}</b>`;
+  $("btn-step").disabled = true;
+  render();
+}
+
+function autoRun() {
+  if (autoId) {
+    clearInterval(autoId); autoId = null;
+    $("btn-auto").textContent = "自動再生 ▶";
+    return;
+  }
+  $("btn-auto").textContent = "停止 ■";
+  const ms = parseInt($("speed").value);
+  autoId = setInterval(() => {
+    if (done) { clearInterval(autoId); autoId = null; $("btn-auto").textContent = "自動再生 ▶"; return; }
+    step();
+  }, ms);
+}
+
+function reset() {
+  if (autoId) { clearInterval(autoId); autoId = null; $("btn-auto").textContent = "自動再生 ▶"; }
+  pos = 0; types = new Set(); segments = 0; segStart = 0; done = false; wasNew = false; segLog = [];
+  $("ttr-bar").style.width = "100%";
+  $("ttr-bar").classList.remove("below");
+  $("ttr-val").textContent = "1.000";
+  $("pos-val").textContent = "0"; $("types-val").textContent = "0";
+  $("tokens-in-seg").textContent = "0"; $("seg-val").textContent = "0";
+  $("seg-log").innerHTML = "";
+  $("result").style.display = "none";
+  $("btn-step").disabled = false;
+  render();
+}
+
+$("speed").addEventListener("input", function() {
+  $("speed-label").textContent = this.value + "ms";
+  if (autoId) {
+    clearInterval(autoId);
+    autoId = setInterval(() => {
+      if (done) { clearInterval(autoId); autoId = null; $("btn-auto").textContent = "自動再生 ▶"; return; }
+      step();
+    }, parseInt(this.value));
+  }
+});
+
+render();
+</script>
+</body>
+</html>

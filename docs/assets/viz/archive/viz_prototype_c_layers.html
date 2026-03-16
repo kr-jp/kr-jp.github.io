@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>試案C：地層メタファー — 用法基盤モデル</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Yu Gothic', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            background: #0a0a1a;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+        canvas { display: block; }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none; z-index: 10;
+        }
+
+        .title-section {
+            position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
+            text-align: center; pointer-events: auto; z-index: 20;
+        }
+        h1 {
+            font-size: 26px;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; margin-bottom: 6px;
+        }
+        .subtitle { font-size: 13px; color: rgba(255,255,255,0.55); }
+
+        .phase-box {
+            position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 14px 26px; border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white; text-align: center;
+            max-width: 650px; width: 65%; min-width: 280px;
+            z-index: 15; pointer-events: auto;
+        }
+        .phase-title { font-size: 15px; font-weight: bold; color: #f093fb; margin-bottom: 5px; }
+        .phase-desc { font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.75); }
+
+        /* Layer labels on left side */
+        .layer-labels {
+            position: absolute; left: 20px; bottom: 80px;
+            display: flex; flex-direction: column; gap: 0;
+            pointer-events: auto; z-index: 15;
+        }
+        .layer-label {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px; font-size: 11px;
+            color: rgba(255,255,255,0.7);
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .layer-label:hover {
+            color: white;
+            background: rgba(255,255,255,0.05);
+            border-radius: 0 8px 8px 0;
+        }
+        .layer-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+
+        .controls {
+            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; pointer-events: auto; z-index: 25;
+            flex-wrap: wrap; justify-content: center;
+        }
+        button {
+            padding: 9px 20px; font-size: 12px;
+            background: rgba(102, 126, 234, 0.5); color: white;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 20px;
+            cursor: pointer; transition: all 0.3s;
+            white-space: nowrap;
+        }
+        button:hover {
+            background: rgba(118, 75, 162, 0.7);
+            box-shadow: 0 3px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .info-panel {
+            position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,255,255,0.06); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 10px 30px; border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex; gap: 22px; pointer-events: auto; z-index: 20;
+        }
+        .stat { text-align: center; }
+        .stat-number {
+            font-size: 24px; font-weight: bold;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 20px; }
+            .phase-box { top: 80px; width: 90%; }
+            .layer-labels { display: none; }
+            .controls { bottom: 65px; }
+            .info-panel { padding: 8px 16px; gap: 14px; }
+            .stat-number { font-size: 20px; }
+        }
+        @media (max-height: 600px) {
+            .title-section { top: 5px; }
+            h1 { font-size: 18px; }
+            .subtitle { display: none; }
+            .phase-box { top: 35px; padding: 5px 14px; background: transparent; border: none; }
+            .phase-desc { display: none; }
+            .controls { bottom: 45px; }
+            .info-panel { bottom: 5px; padding: 5px 12px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="layerCanvas"></canvas>
+
+    <div class="overlay">
+        <div class="title-section">
+            <h1>言語知識の地層</h1>
+            <div class="subtitle">データの蓄積が構造を形作る</div>
+        </div>
+
+        <div class="phase-box">
+            <div class="phase-title" id="phaseTitle">表現が降り積もっていきます</div>
+            <div class="phase-desc" id="phaseDesc">
+                実際の言語使用から、頻度の高いパターンが地層のように定着していきます
+            </div>
+        </div>
+
+        <div class="layer-labels" id="layerLabels"></div>
+
+        <div class="controls">
+            <button id="pauseBtn">一時停止</button>
+            <button id="resetBtn">リセット</button>
+            <button id="speedBtn">高速</button>
+        </div>
+
+        <div class="info-panel">
+            <div class="stat">
+                <div class="stat-number" id="dataCount">0</div>
+                <div class="stat-label">蓄積データ</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="layerCount">0</div>
+                <div class="stat-label">形成された層</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="depth">0</div>
+                <div class="stat-label">定着度</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (() => {
+        const canvas = document.getElementById('layerCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Language layers (bottom = most established, top = newest) ---
+        const layerDefs = [
+            { name: '基本文法', examples: ['〜です', '〜ます', '〜は〜が', '〜を〜する', '〜に行く'],
+              color: '#2a1a5e', textColor: '#8877cc', threshold: 0 },
+            { name: '助詞・接続', examples: ['〜ので', '〜から', '〜けど', '〜ても', '〜ながら'],
+              color: '#1a2a5e', textColor: '#6688dd', threshold: 30 },
+            { name: '定着した表現', examples: ['〜てしまう', '〜ている', '〜てくる', '〜ておく', '〜てある'],
+              color: '#1a3a5e', textColor: '#55aacc', threshold: 60 },
+            { name: '口語表現', examples: ['〜ちゃう', '〜てる', '〜とく', '〜んだ', '〜じゃん'],
+              color: '#1a4a4e', textColor: '#55ccaa', threshold: 100 },
+            { name: '新しい用法', examples: ['それな', 'ヤバい', '〜たり(単独)', 'エモい', 'ワンチャン'],
+              color: '#2a4a3e', textColor: '#77dd88', threshold: 150 },
+        ];
+
+        // Falling word particles
+        const particles = [];
+        const settled = []; // Words that have settled into layers
+        let isAnimating = true;
+        let speed = 1;
+        let totalData = 0;
+        let formedLayers = 0;
+        let lastSpawnTime = 0;
+        let spawnInterval = 400;
+
+        // All possible falling words
+        const wordPool = [];
+        layerDefs.forEach((layer, i) => {
+            layer.examples.forEach(w => {
+                wordPool.push({ word: w, layerIndex: i, color: layer.textColor });
+            });
+        });
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function getLayerY(layerIndex) {
+            const groundY = canvas.height - 60;
+            const layerHeight = 50;
+            return groundY - layerIndex * layerHeight;
+        }
+
+        function spawnParticle() {
+            // Pick a word weighted toward current "era"
+            const era = Math.min(Math.floor(totalData / 40), layerDefs.length - 1);
+            // Mostly current era, sometimes earlier
+            const targetLayer = Math.random() < 0.7 ? era : Math.floor(Math.random() * (era + 1));
+            const layerWords = wordPool.filter(w => w.layerIndex === targetLayer);
+            if (layerWords.length === 0) return;
+            const pick = layerWords[Math.floor(Math.random() * layerWords.length)];
+
+            particles.push({
+                word: pick.word,
+                layerIndex: pick.layerIndex,
+                color: pick.color,
+                x: 80 + Math.random() * (canvas.width - 160),
+                y: -20,
+                vy: 0.5 + Math.random() * 1.0,
+                vx: (Math.random() - 0.5) * 0.3,
+                opacity: 0,
+                settled: false,
+                settleY: getLayerY(pick.layerIndex) + Math.random() * 30 - 15,
+                fontSize: 12 + Math.random() * 4,
+                rotation: (Math.random() - 0.5) * 0.15
+            });
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+
+                p.opacity = Math.min(p.opacity + 0.03, 0.9);
+                p.y += p.vy * speed;
+                p.x += p.vx * speed;
+
+                // Settle when reaching layer position
+                if (p.y >= p.settleY) {
+                    p.y = p.settleY;
+                    p.vy *= 0.5;
+
+                    if (p.vy < 0.1 && !p.settled) {
+                        p.settled = true;
+                        totalData++;
+
+                        // Move to settled array (with fade)
+                        settled.push({
+                            word: p.word,
+                            layerIndex: p.layerIndex,
+                            color: p.color,
+                            x: p.x,
+                            y: p.y,
+                            opacity: p.opacity,
+                            fontSize: p.fontSize,
+                            rotation: p.rotation,
+                            age: 0
+                        });
+
+                        particles.splice(i, 1);
+                        updateProgress();
+                    }
+                }
+
+                // Remove if fell too far
+                if (p.y > canvas.height + 50) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Age settled words (slowly fade to become part of layer)
+            settled.forEach(s => {
+                s.age++;
+                if (s.age > 200) {
+                    s.opacity = Math.max(s.opacity - 0.002, 0.15);
+                }
+            });
+
+            // Limit settled array
+            if (settled.length > 300) {
+                settled.splice(0, settled.length - 300);
+            }
+        }
+
+        function updateProgress() {
+            formedLayers = 0;
+            layerDefs.forEach(l => {
+                if (totalData >= l.threshold) formedLayers++;
+            });
+
+            document.getElementById('dataCount').textContent = totalData;
+            document.getElementById('layerCount').textContent = formedLayers;
+            document.getElementById('depth').textContent = Math.min(Math.floor(totalData / 10), 20);
+
+            // Update phase text
+            const el = document.getElementById('phaseTitle');
+            const desc = document.getElementById('phaseDesc');
+            if (totalData < 30) {
+                el.textContent = '表現が降り積もっていきます';
+                desc.textContent = '実際の言語使用から、頻度の高いパターンが地層のように定着していきます';
+            } else if (totalData < 80) {
+                el.textContent = '基本パターンが定着し始めました';
+                desc.textContent = '繰り返し使われる文法構造が、安定した地層として堆積しています';
+            } else if (totalData < 150) {
+                el.textContent = '多層的な言語知識の形成';
+                desc.textContent = '基本文法の上に口語表現や新しい用法が積み重なっています';
+            } else {
+                el.textContent = '言語は常に変化し続ける';
+                desc.textContent = '定着した構造の上に新たな表現が生まれ、言語は生き続けます';
+            }
+
+            updateLayerLabels();
+        }
+
+        function updateLayerLabels() {
+            const container = document.getElementById('layerLabels');
+            container.innerHTML = layerDefs.slice(0, formedLayers).reverse().map((l, i) => `
+                <div class="layer-label">
+                    <div class="layer-dot" style="background: ${l.textColor}"></div>
+                    <span>${l.name}</span>
+                </div>
+            `).join('');
+        }
+
+        // --- Render ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw layer backgrounds
+            const groundY = canvas.height - 60;
+            const layerHeight = 50;
+
+            for (let i = 0; i < formedLayers && i < layerDefs.length; i++) {
+                const layer = layerDefs[i];
+                const y = getLayerY(i);
+
+                // Layer background gradient
+                const grad = ctx.createLinearGradient(0, y - layerHeight / 2, 0, y + layerHeight / 2);
+                grad.addColorStop(0, layer.color + '00');
+                grad.addColorStop(0.3, layer.color + '88');
+                grad.addColorStop(0.7, layer.color + '88');
+                grad.addColorStop(1, layer.color + '00');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, y - layerHeight / 2, canvas.width, layerHeight);
+
+                // Layer divider line
+                ctx.strokeStyle = layer.textColor + '30';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 8]);
+                ctx.beginPath();
+                ctx.moveTo(60, y + layerHeight / 2);
+                ctx.lineTo(canvas.width - 60, y + layerHeight / 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Layer name (right side)
+                ctx.font = '11px "Yu Gothic", sans-serif';
+                ctx.fillStyle = layer.textColor + '60';
+                ctx.textAlign = 'right';
+                ctx.fillText(layer.name, canvas.width - 30, y + 4);
+            }
+
+            // Draw settled words
+            settled.forEach(s => {
+                ctx.save();
+                ctx.translate(s.x, s.y);
+                ctx.rotate(s.rotation);
+                ctx.font = `${s.fontSize}px "Yu Gothic", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillStyle = s.color + Math.floor(s.opacity * 255).toString(16).padStart(2, '0');
+                ctx.fillText(s.word, 0, 0);
+                ctx.restore();
+            });
+
+            // Draw falling particles
+            particles.forEach(p => {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation);
+                ctx.font = `bold ${p.fontSize}px "Yu Gothic", sans-serif`;
+                ctx.textAlign = 'center';
+
+                // Glow effect for falling particles
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 12;
+                ctx.fillStyle = p.color + Math.floor(p.opacity * 255).toString(16).padStart(2, '0');
+                ctx.fillText(p.word, 0, 0);
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            });
+
+            // Ground line
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY + 25);
+            ctx.lineTo(canvas.width, groundY + 25);
+            ctx.stroke();
+        }
+
+        // --- Animation ---
+        function animate(timestamp) {
+            requestAnimationFrame(animate);
+
+            if (isAnimating) {
+                if (timestamp - lastSpawnTime > spawnInterval / speed) {
+                    spawnParticle();
+                    lastSpawnTime = timestamp;
+                }
+                updateParticles();
+            }
+
+            draw();
+        }
+
+        // --- UI ---
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            isAnimating = !isAnimating;
+            document.getElementById('pauseBtn').textContent = isAnimating ? '一時停止' : '再生';
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            particles.length = 0;
+            settled.length = 0;
+            totalData = 0; formedLayers = 0;
+            lastSpawnTime = 0;
+            updateProgress();
+            if (!isAnimating) {
+                isAnimating = true;
+                document.getElementById('pauseBtn').textContent = '一時停止';
+            }
+        });
+
+        document.getElementById('speedBtn').addEventListener('click', () => {
+            const btn = document.getElementById('speedBtn');
+            if (speed === 1) { speed = 3; btn.textContent = '超高速'; }
+            else if (speed === 3) { speed = 0.3; btn.textContent = '低速'; }
+            else { speed = 1; btn.textContent = '高速'; }
+        });
+
+        window.addEventListener('resize', resize);
+        resize();
+        updateProgress();
+        requestAnimationFrame(animate);
+    })();
+    </script>
+</body>
+</html>
