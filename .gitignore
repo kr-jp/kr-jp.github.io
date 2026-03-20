@@ -107,4 +107,6 @@ Desktop.ini
 *.swp
 *~.nib
 
-# .gitignore
+# ローカル開発ツール
+.envrc
+.claude/
