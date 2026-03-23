@@ -128,7 +128,15 @@
             <text macro="title"/>
             <text macro="edition"/>
             <choose>
-              <if type="chapter paper-conference" match="any">
+              <if type="article-journal" match="any">
+                <text variable="container-title" font-style="italic" prefix=". "/>
+                <group prefix=", ">
+                  <text variable="volume" font-style="italic"/>
+                  <text variable="issue" prefix="(" suffix=")"/>
+                </group>
+                <text variable="page" prefix=", "/>
+              </if>
+              <else-if type="chapter paper-conference" match="any">
                 <text term="in" prefix=". " text-case="capitalize-first" suffix=" "/>
                 <names variable="editor">
                   <name initialize-with=". " delimiter=", "/>
@@ -136,7 +144,7 @@
                 </names>
                 <text variable="container-title" font-style="italic" prefix=", "/>
                 <text variable="page" prefix=" (pp. " suffix=")"/>
-              </if>
+              </else-if>
             </choose>
             <text macro="publisher" prefix=". "/>
           </group>
@@ -149,13 +157,19 @@
             <text macro="title"/>
             <text macro="edition"/>
             <choose>
-              <if type="chapter paper-conference" match="any">
+              <if type="article-journal" match="any">
+                <text variable="container-title" prefix="『" suffix="』"/>
+                <text variable="volume"/>
+                <text variable="issue" prefix="(" suffix=")"/>
+                <text variable="page" prefix=", pp."/>
+              </if>
+              <else-if type="chapter paper-conference" match="any">
                 <group prefix=" " suffix="">
                   <text macro="editor"/>
                   <text variable="container-title" prefix="『" suffix="』"/>
                   <text variable="page" prefix=" pp." suffix=""/>
                 </group>
-              </if>
+              </else-if>
             </choose>
             <text macro="publisher"/>
           </group>
