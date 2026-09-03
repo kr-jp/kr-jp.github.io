@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- iframe 폴백 페이지: regex-widget.js를 로드하고 URL 파라미터(?p&t&f&lang)를 위젯 속성으로 전달 -->
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Regex Widget</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 4px;
+        background: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="./regex-widget.js"></script>
+    <script>
+      (function () {
+        var q = new URLSearchParams(location.search);
+        var el = document.createElement('regex-widget');
+        if (q.get('p')) el.setAttribute('pattern', q.get('p'));
+        if (q.get('t')) el.setAttribute('text', q.get('t'));
+        el.setAttribute('flags', q.get('f') || 'gu');
+        el.setAttribute('lang', q.get('lang') || 'ja');
+        document.body.appendChild(el);
+      })();
+    </script>
+  </body>
+</html>

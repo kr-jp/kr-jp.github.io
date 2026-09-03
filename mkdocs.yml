@@ -46,6 +46,7 @@ markdown_extensions:
       generic: true
 
 extra_javascript:
+  - assets/viz/regex-widget.js
   - https://unpkg.com/mermaid/dist/mermaid.min.js
   - javascripts/mathjax.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
@@ -72,10 +73,10 @@ nav:
   - 言語学専門演習:
     - まえがき: 02-major-seminar-on-linguistics/00-index.md
     - 先行研究: 02-major-seminar-on-linguistics/01-literature-review.md
-    - アカデミック・ライティング: 02-major-seminar-on-linguistics/02-academic-writing.md
-    - データの分析方法: 02-major-seminar-on-linguistics/03-data-analysis.md
-    - 2026年のAIと言語研究: 02-major-seminar-on-linguistics/04-genai-in-linguistics.md
-    - 文章は「時間」が書く: 02-major-seminar-on-linguistics/05-writing-takes-time.md
-    - 研究とメンタルヘルス: 02-major-seminar-on-linguistics/06-research-and-mental-health.md
+    - データの分析方法: 02-major-seminar-on-linguistics/02-data-analysis.md
+    - アカデミック・ライティング: 02-major-seminar-on-linguistics/03-academic-writing.md
+    - 文章は「時間」が書く: 02-major-seminar-on-linguistics/04-writing-takes-time.md
+    - 研究とメンタルヘルス: 02-major-seminar-on-linguistics/05-research-and-mental-health.md
   - 言語研究のためのLLM:
-    - 目次: 03-llm/00-index.md
+    - まえがき: 03-llm/00-index.md
+    - 2種類のLLM: 03-llm/01-llm.md

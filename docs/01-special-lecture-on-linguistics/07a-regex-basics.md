@@ -84,7 +84,7 @@
         文字列と正規表現を入力して、正規表現が実際にどんな文字列にマッチするのかを確認してみましょう。下の方にあるかわいい「Regex Widget」を使ってみることにします。       
         
     === "② 文字列と正規表現の入力"  
-        以下の文字列をコピーして、「Target Text」のところに貼り付けましょう。
+        以下の文字列をコピーして、「対象テキスト（コーパス）」のところに貼り付けましょう。
 
         ``` { .text .copy title="文字列" }
         満面の笑み
@@ -109,7 +109,7 @@
         - `{1,3}` → 1文字以上3文字以下
         - `{2}` → ちょうど2文字（カンマなし）
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget flags="gu" lang="ja" text="満面の笑み&#10;満面の笑顔&#10;満面のスマイル&#10;満面の"></regex-widget>
 
 正規表現では、通常の文字とは別に、特別な意味を持つ**メタ文字**（metacharacter）を使います。これらは、探偵が使う「暗号」や「記号」のようなものです。
 
@@ -143,7 +143,7 @@
     .
     ```
     
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="." flags="gu" lang="ja" text="あいうえお&#10;12345&#10;abc"></regex-widget>
 
 ### 繰り返し
 文字列の繰り返しを表すためには、次のようなメタ文字を使うことができます。
@@ -201,7 +201,7 @@ graph TD
         
         一方、`+`は「1回以上」なので、「言語学」の後ろに最低1文字必要です。
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="言語学.*" flags="gu" lang="ja" text="言語学&#10;言語学者&#10;言語学的&#10;言語学についての研究"></regex-widget>
 
 ### 繰り返し回数の指定
 より細かく繰り返し回数を指定したい場合は、波括弧（`{}`）を使います。
@@ -228,7 +228,7 @@ graph TD
     あ{2,4}
     ```
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="あ{2,4}" flags="gu" lang="ja" text="あ&#10;ああ&#10;あああ&#10;ああああ&#10;あああああ"></regex-widget>
 
 ### または
 
@@ -252,7 +252,7 @@ graph TD
     どうりで|どおりで|道理で
     ```
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="どうりで|どおりで|道理で" flags="gu" lang="ja" text="どうりで腹が減るわけだ&#10;どおりで鼻が効くわけだな&#10;道理で見たところ粋で愛想がいい"></regex-widget>
 
 ### グループ化とキャプチャー
 正規表現を書くときには、なるべく短く書くことが美徳とされています。たとえば、先ほどの「どうりで|どおりで」は、次のようにグループ化することでもっと短く表せます。
@@ -289,7 +289,7 @@ graph TD
     
     マッチしていない例もマッチさせるには、どのようにすればいいでしょうか？
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="日本(そして|また|あるいは|もしくは|ないし|・)韓国" flags="gu" lang="ja" text="日本そして韓国においては、働き手不足によって、外国人労働者の受け入れが政府の…&#10;日本ないし韓国においては、働き手不足によって、外国人労働者の受け入れが政府の…&#10;日本・韓国においては、働き手不足によって、外国人労働者の受け入れが政府の…&#10;日本、韓国においては、働き手不足によって、外国人労働者の受け入れが政府の…&#10;日本、そして、韓国においては、働き手不足によって、外国人労働者の受け入れが政府の…&#10;日本と韓国においては、働き手不足によって、外国人労働者の受け入れが政府の…"></regex-widget>
 
 !!! tip "校閲者の仕事"
     好みによって、句読点「、」「，」「。」「．」の組み合わせを決めている人がいると思います。グループ化を利用すると、複数人が書いた文書の中にある記号を統一させるのも簡単にできます。たとえば、10人が書いた文書の中にある句読点をすべて「，」と「．」の組み合わせに変更することが考えられます。
@@ -323,7 +323,7 @@ graph TD
         ```        
         上記「だめだめだめよ だめなのよ」には半角空白が一つ含まれていますが、任意の文字を意味する「.」は空白にもマッチします。
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="(だめ)\1\1..\1" flags="gu" lang="ja" text="だめだめだめよ だめなのよ"></regex-widget>
 
 ## 文字クラス
 角括弧`[]`は、**文字クラス**（character class）を表します。文字クラスは「この中のどれか1文字」を意味します。
@@ -361,7 +361,7 @@ graph TD
     === "③ 上級"
         最後に、数字を含むすべての文字列にマッチする正規表現を書いてみましょう。
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget flags="gu" lang="ja" text="一億円&#10;二億円&#10;三億円&#10;十億円&#10;一億ドル&#10;二十億ドル&#10;1億円&#10;10億円&#10;50億ドル&#10;500億ドル"></regex-widget>
 
 !!! note "グループ化と文字クラスの違い"
     グループ化 `()`は、複数の文字列から選ぶことになります。
@@ -409,7 +409,7 @@ graph TD
         ```
         アルファベットと数字の1回以上の繰り返しにマッチします。
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="[a-z]+" flags="gu" lang="ja" text="It's 6 p.m. I wanna GO home."></regex-widget>
 
 #### 日本語の場合
 もちろん日本語の文字も、範囲指定ができます。日本語の場合、**Unicode**（文字コード）の識別番号を利用しています。
@@ -447,7 +447,7 @@ graph TD
     遠藤・川澤・久保・河野・杉山・土田・松岡・大西・小掠・田中・宮内・免出・松本
     ```
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="[一-龠]+" flags="gu" lang="ja" text="遠藤・川澤・久保・河野・杉山・土田・松岡・大西・小掠・田中・宮内・免出・松本"></regex-widget>
 
 !!! note "文字コードについて"
     「一」から「龠」までの範囲指定が、なぜこのように漢字をカバーすることができるのでしょうか？これは、Unicodeという国際規格で、文字に連続した番号が割り当てられているからです。
@@ -489,7 +489,7 @@ graph TD
         
         （約物以外）日本語の文字すべてにマッチします。
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="[一-龠]+" flags="gu" lang="ja" text="これは日本語のセンテンスです。"></regex-widget>
 
 ### オノマトペの検索
 キャプチャーと文字クラスを組み合わせると、卒業論文の常連テーマであるオノマトペのような繰り返しパターンを検索できます。
@@ -542,7 +542,7 @@ graph TD
     [가-힣]+
     ```
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="[가-힣]+" flags="gu" lang="ja" text="시작은 달콤하게 평범하게 나에게 끌려&#10;언제나 그랬듯이 먼저 말을 걸어와&#10;모든 가능성 열어둬 oh&#10;&#10;始まりはそうさ　こういつも平凡さ&#10;僕は心を　操れるから&#10;鍵　開けておくよ　Oh"></regex-widget>
 
 ## ？
 ### あってもよし、なくてもよし
@@ -565,7 +565,7 @@ graph TD
     とてもおいしかったです。
     ``` 
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget flags="gu" lang="ja" text="味はいかがでしたか？&#10;お味はいかがでしたか？&#10;おいしかったです。&#10;とてもおいしかったです。"></regex-widget>
 
 この`?`には、もう一つ、他の機能があります。**最短一致**という機能です。
 
@@ -598,7 +598,7 @@ graph TD
     === "③ 改行しなくてもうまくいく"
         `?`を`+`の右側につけるとどのようになるのか、見てみましょう。
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern=".+も" flags="gu" lang="ja" text="涙も笑顔もつないだこの手も　幾重の写真に負けない想い出"></regex-widget>
 
 `+`に`?`をつけないと、欲張ってできるだけ広い範囲まで一致する文字列を探します。`+`や`*`は、**貪欲**（greedy）です。つまり、できるだけ長くマッチしようとします。そのため、「涙も笑顔もつないだこの手も」を対象に`.+も`と書くと、最初の「も」や2番目の「も」も含め、一番最後にある「も」までマッチします（最長一致）。
 
@@ -627,7 +627,7 @@ graph TD
     貸してくれって何を
     ``` 
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="^何を" flags="gum" lang="ja" text="今日は何をしますか。&#10;何をボーっとしているんだ！&#10;今日の晩御飯は、何を作ろうかな？&#10;どこで？何を？&#10;お前、いったい何を&#10;貸してくれって何を"></regex-widget>
 
 ### 行末
 今回は逆に、文の最後の方にある文字列の例を考えてみましょう。たとえば、「お前、いったい何を…」「貸してくれって、何を。」といった種類のものです。
@@ -661,7 +661,7 @@ graph TD
      
      同じ方法で、「カタカナ以外」「漢字以外」「英語以外」にマッチさせてみましょう。
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="[^ぁ-ん]" flags="gu" lang="ja" text="これはひらがな&#10;エッホエッホエッホエッホ〜&#10;道後温泉駅&#10;Starbucks"></regex-widget>
 
 ## 空白はいらない
 
@@ -688,7 +688,7 @@ graph TD
     === "② 大文字と小文字の区別"
         ここで`\s`の「s」を大文字に変えると、「`\s`以外の文字」という意味になります。つまり、空白以外の文字を意味します。
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="\s" flags="gu" lang="ja" text="田中花子&#10;Tanaka Taro（半角スペース）&#10;鈴木　太郎（全角スペース）&#10;089-123-4567"></regex-widget>
 
 このように、大文字にするのか、小文字にするのかによって、意味が変わる例として`\w`と`\W`、`\d``\D`があります。以下のメタ文字を試してみましょう。なお、`\t`は「タブ」にマッチします（ウェブブラウザ上ではタブを押すとフォーカス移動（Focus Navigation）をするのでうまくいきません）。
 

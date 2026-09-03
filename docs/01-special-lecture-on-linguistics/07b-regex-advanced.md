@@ -88,7 +88,7 @@
      - `[一-龠]{2,}` → 漢字2文字以上にマッチ
      - `(?=学)` → その後に「学」が続くことを確認（ただし「学」自体はマッチに含めない）
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="[一-龠]{2,}(?=学)" flags="gu" lang="ja" text="哲学&#10;言語&#10;言語学&#10;心理学&#10;日本語学&#10;学校"></regex-widget>
 
 ### 否定先読み
 
@@ -117,7 +117,7 @@
     - `日本` → まず「日本」という文字を探す
     - `(?!語|人)` → その直後に「語」または「人」が続かないことを確認    
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="日本(?!語|人)" flags="gu" lang="ja" text="日本に行く&#10;日本語を学ぶ&#10;日本人の友達&#10;日本文化"></regex-widget>
 
 ### 肯定後読み
 
@@ -145,7 +145,7 @@
     肯定先読みの部分でひらがなを指定しているので、「お子様ランチ」にはマッチしません。
 
         
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="(?&lt;=お|ご)[一-龠]+(?=[ぁ-ん])" flags="gu" lang="ja" text="お待ちください。&#10;お子様ランチをお届けします。&#10;ご連絡いたします。&#10;待ってください。&#10;お荷物をお預かりしています。"></regex-widget>
 
 ### 否定後読み
 
@@ -172,7 +172,7 @@
     - `(?<!っ)` → 直前に促音「っ」がないことを確認
     - `た` → 「見た」「食べた」の「た」にマッチ
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="(?!来)[一-龠]([ぁ-ん])?(?&lt;!っ)た" flags="gu" lang="ja" text="五段活用：買った・待った・乗った・飲んだ・遊んだ&#10;上一段活用：見た・起きた・信じた&#10;下一段活用：食べた・寝た・開けた&#10;カ行変格活用：来た&#10;サ行変格活用：した"></regex-widget>
 
 先読みと後読みをまとめてみると、以下のようになります。
 
@@ -208,7 +208,7 @@
  
     `\`（バックスラッシュ）でエスケープすると、`.`を文字そのものとして扱えます。
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="3.14" flags="gu" lang="ja" text="価格は3.14ドルです。&#10;3a14&#10;3b14"></regex-widget>
 
 メタ文字をエスケープする必要が出てくる場面として、たとえば、以下のような例が考えられます。
 
@@ -236,7 +236,7 @@
     \([0-9]+\)
     ```
 
-<iframe src="../../assets/viz/regex-visualizer-lite.html" width="100%" height="500" frameborder="0" style="border: none; display: block;"></iframe>
+<regex-widget pattern="\([0-9]+\)" flags="gu" lang="ja" text="詳細は、参考文献(1)を参照。なお、参考文献(2)と(3)には、この主張と異なる意見が述べられている。"></regex-widget>
 
 ## 待ちに待った課題
 以下のページを確認して、ピボットテーブルの作り方を練習してみましょう。
