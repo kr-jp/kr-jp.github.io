@@ -41,7 +41,6 @@
 
         * {
             box-sizing: border-box;
-            outline: none;
         }
 
         body {
@@ -66,6 +65,11 @@
             overflow: hidden;
             box-shadow: var(--shadow);
             transition: all 0.3s ease;
+        }
+
+        /* 입력 중인 메모를 테두리 색으로 표시 (입력란 자체의 포커스 테두리 대신) */
+        .memo-container:focus-within {
+            border-color: var(--accent-color);
         }
 
         /* 헤더 영역 */
@@ -115,6 +119,13 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
+        /* 키보드로 이동할 때만 보이는 포커스 표시 */
+        .icon-btn:focus-visible,
+        .legacy-notice button:focus-visible {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 1px;
+        }
+
         .icon-btn.danger:hover {
             color: var(--danger-color);
             background-color: rgba(239, 68, 68, 0.1);
@@ -138,8 +149,12 @@
             color: var(--text-color);
             font-family: inherit;
             /* 폰트 사이즈 확대: 15px -> 17px */
-            font-size: 17px; 
+            font-size: 17px;
             line-height: 1.6;
+        }
+
+        textarea:focus {
+            outline: none;
         }
         
         textarea::placeholder {
@@ -204,6 +219,33 @@
 
         .status-dot.saved {
             background-color: var(--success-color);
+        }
+
+        .status-dot.error {
+            background-color: var(--danger-color);
+        }
+
+        /* 이전 버전(모든 메모가 같은 저장 위치)에 남은 메모 안내 */
+        .legacy-notice {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--text-color);
+        }
+
+        .legacy-notice[hidden] {
+            display: none;
+        }
+
+        .legacy-notice button {
+            font: inherit;
+            color: var(--accent-color);
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            border-radius: 4px;
+            padding: 1px 8px;
+            cursor: pointer;
         }
 
         /* 토스트 메시지 */
@@ -289,6 +331,11 @@
             </div>
             <div id="charCount">0文字</div>
         </div>
+        <!-- 이전 버전에 남은 메모 불러오기 -->
+        <div id="legacyNotice" class="legacy-notice" hidden>
+            <span>以前のメモがあります</span>
+            <button type="button" onclick="loadLegacyMemo()">読み込む</button>
+        </div>
         <!-- 프라이버시 알림 추가 -->
         <div class="privacy-notice">
             <svg class="privacy-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
@@ -299,42 +346,80 @@
 
 <script>
     // --- 설정 및 상수 ---
-    const STORAGE_KEY = 'mkdocs_memo_v2_' + window.location.pathname;
+    // iframe 안의 location.pathname은 위젯 자신의 경로라서 모든 메모가 같은 키를 쓰게 된다.
+    // 강의 페이지 경로 + 그 페이지에서 몇 번째 메모인지로 메모마다 저장 위치를 나눈다.
+    const MEMO = getMemoPlace();
+    const STORAGE_KEY = 'mkdocs_memo_v3_' + MEMO.page + '#' + MEMO.index;
+    // 이전 버전에서 모든 메모가 같이 쓰던 키 (학생의 기존 메모가 남아 있으므로 자동으로 지우지 않음)
+    const LEGACY_KEY = 'mkdocs_memo_v2_' + window.location.pathname;
     const textarea = document.getElementById('memoText');
     const toastEl = document.getElementById('toast');
     const charCountEl = document.getElementById('charCount');
     const statusDot = document.getElementById('saveStatusDot');
     const statusText = document.getElementById('saveStatusText');
-    
-    let saveTimeout;
+    const legacyNotice = document.getElementById('legacyNotice');
+
+    let saveTimeout = null;
     let toastTimeout;
+
+    function getMemoPlace() {
+        try {
+            const frame = window.frameElement;
+            if (frame) {
+                const memos = [...window.parent.document.querySelectorAll('iframe')]
+                    .filter(f => f.src && new URL(f.src).pathname === window.location.pathname);
+                return {
+                    page: window.parent.location.pathname.replace(/index\.html$/, ''),
+                    index: memos.indexOf(frame) + 1
+                };
+            }
+        } catch (e) {
+            // 다른 사이트에 삽입되어 부모 페이지에 접근할 수 없는 경우
+        }
+        return { page: window.location.pathname, index: 1 };
+    }
+
+    // 저장소가 막힌 브라우저(사생활 보호 설정 등)에서도 위젯이 멈추지 않도록 감싼다
+    const store = {
+        get(key) {
+            try { return localStorage.getItem(key); } catch (e) { return null; }
+        },
+        set(key, value) {
+            try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
+        },
+        remove(key) {
+            try { localStorage.removeItem(key); } catch (e) { /* 저장소를 쓸 수 없음 */ }
+        }
+    };
 
     // --- 초기화 ---
     function init() {
         loadMemo();
         detectTheme();
         textarea.addEventListener('input', handleInput);
-        
-        // 탭 키 지원
-        textarea.addEventListener('keydown', function(e) {
-            if (e.key == 'Tab') {
-                e.preventDefault();
-                const start = this.selectionStart;
-                const end = this.selectionEnd;
-                this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
-                this.selectionStart = this.selectionEnd = start + 1;
-                handleInput();
-            }
+
+        // 입력 직후 페이지를 떠나도 마지막 입력이 남도록 바로 저장
+        textarea.addEventListener('blur', flushSave);
+        window.addEventListener('pagehide', flushSave);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') flushSave();
         });
+
+        // 같은 페이지의 다른 메모에서 이전 메모를 불러가면 이 메모의 안내도 숨긴다
+        window.addEventListener('storage', e => {
+            if (e.key === LEGACY_KEY) updateLegacyNotice();
+        });
+
+        if (!store.set(STORAGE_KEY + '_probe', '1')) setStatus('error');
+        store.remove(STORAGE_KEY + '_probe');
     }
 
     // --- 테마 관리 ---
+    // 강의 페이지가 라이트 전용이므로 OS 설정은 따르지 않고, 직접 전환한 경우만 그 설정을 쓴다
     function detectTheme() {
-        const savedTheme = localStorage.getItem('memo_theme_preference');
+        const savedTheme = store.get('memo_theme_preference');
         if (savedTheme) {
             document.documentElement.setAttribute('data-theme', savedTheme);
-        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
         }
         updateThemeIcon();
     }
@@ -344,30 +429,37 @@
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         
         document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('memo_theme_preference', newTheme);
+        store.set('memo_theme_preference', newTheme);
         updateThemeIcon();
         // 일본어 메시지 적용
         showToast(newTheme === 'dark' ? 'ダークモードに切り替えました' : 'ライトモードに切り替えました');
     }
 
+    // 라이트일 때는 달(다크로 전환), 다크일 때는 해(라이트로 전환) 아이콘
+    const SUN_ICON = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+    const MOON_ICON = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+
     function updateThemeIcon() {
-        // 아이콘 변경 로직 필요 시 추가
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        document.getElementById('themeIcon').innerHTML = isDark ? SUN_ICON : MOON_ICON;
     }
 
     // --- 메모 기능 ---
     function loadMemo() {
-        const savedMemo = localStorage.getItem(STORAGE_KEY);
+        const savedMemo = store.get(STORAGE_KEY);
         if (savedMemo) {
             textarea.value = savedMemo;
             updateCount();
             setStatus('saved');
         }
+        updateLegacyNotice();
     }
 
     function handleInput() {
         setStatus('saving');
         updateCount();
-        
+        updateLegacyNotice();
+
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
             saveMemo();
@@ -375,9 +467,35 @@
     }
 
     function saveMemo() {
+        saveTimeout = null;
         const text = textarea.value;
-        localStorage.setItem(STORAGE_KEY, text);
-        setStatus('saved');
+        setStatus(store.set(STORAGE_KEY, text) ? 'saved' : 'error');
+    }
+
+    function flushSave() {
+        if (saveTimeout) {
+            clearTimeout(saveTimeout);
+            saveMemo();
+        }
+    }
+
+    // --- 이전 버전 메모 ---
+    // 이 메모가 비어 있고 이전 버전의 메모가 남아 있을 때만 안내를 보여 준다
+    function updateLegacyNotice() {
+        const legacy = store.get(LEGACY_KEY);
+        legacyNotice.hidden = !(legacy && legacy.trim() && !textarea.value);
+    }
+
+    function loadLegacyMemo() {
+        const legacy = store.get(LEGACY_KEY);
+        if (legacy) {
+            textarea.value = textarea.value ? textarea.value + '\n\n' + legacy : legacy;
+            updateCount();
+            saveMemo();
+            // 이 메모에 저장된 것을 확인한 뒤에만 이전 키를 지운다 (다른 메모의 안내도 사라짐)
+            if (store.get(STORAGE_KEY) === textarea.value) store.remove(LEGACY_KEY);
+        }
+        updateLegacyNotice();
     }
 
     function updateCount() {
@@ -395,6 +513,9 @@
         } else if (state === 'saved') {
             statusDot.classList.add('saved');
             statusText.textContent = '保存完了';
+        } else if (state === 'error') {
+            statusDot.classList.add('error');
+            statusText.textContent = '保存できません';
         } else {
             statusText.textContent = '待機中';
         }
@@ -439,10 +560,14 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         
-        const date = new Date().toISOString().slice(0, 10);
-        // 파일명도 일본어 수업 컨텍스트에 맞게 수정 가능하나, 호환성을 위해 영문 유지 혹은 'memo'
+        // 날짜는 현지 시각 기준 (toISOString은 UTC라 일본에서는 오전 9시 전에 전날 날짜가 됨)
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        // 어느 페이지의 몇 번째 메모인지 알 수 있게 (예: memo_04-pos_1_2026-10-25.txt)
+        const pageName = (MEMO.page.split('/').filter(Boolean).pop() || 'memo').replace(/\.html$/, '');
         a.href = url;
-        a.download = `memo_${date}.txt`;
+        a.download = `memo_${pageName}_${MEMO.index}_${date}.txt`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -457,9 +582,10 @@
         // 일본어 확인 메시지
         if (confirm('作成中のメモをすべて削除しますか？\n（この操作は取り消せません）')) {
             textarea.value = '';
-            localStorage.removeItem(STORAGE_KEY);
+            store.remove(STORAGE_KEY);
             updateCount();
             setStatus('default');
+            updateLegacyNotice();
             showToast('メモを削除しました。');
         }
     }

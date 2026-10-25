@@ -1105,8 +1105,8 @@ $$
 flowchart TD
     A["テキストの先頭から開始<br/>TTR = 1.0"] --> B["次の語を読む"]
     B --> C["TTRを再計算"]
-    C --> D{"TTR < 0.720?"}
-    D -- "No" --> B
+    C --> D{"TTR ≤ 0.720?"}
+    D -- "No" --> F
     D -- "Yes" --> E["セグメント完了<br/>カウント +1、TTRリセット"]
     E --> F{"テキスト終了?"}
     F -- "No" --> B
@@ -1120,7 +1120,7 @@ flowchart TD
 セグメントが完了していく様子をステップごとに確認できます。
 「自動再生」を押すと自動で進みます。
  
-<iframe src="../../assets/viz/mtld_interactive.html" width="100%" height="520" frameborder="0" style="border: none; display: block;"></iframe>
+<iframe src="../../assets/viz/mtld_interactive.html" width="100%" height="650" frameborder="0" style="border: none; display: block;"></iframe>
  
 McCarthy & Jarvis（2010）の検証では、TTR系の指標の中でMTLDが最もテキスト長の影響を受けにくいと報告されています。
  

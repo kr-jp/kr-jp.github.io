@@ -5,599 +5,787 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>用法基盤モデル — 言語パターンの可視化</title>
     <style>
+        :root {
+            --bg: #0a0a1a;
+            --panel: rgba(255,255,255,0.05);
+            --panel-border: rgba(255,255,255,0.1);
+            --text-1: #f0f0f5;
+            --text-2: rgba(255,255,255,0.75);
+            --text-3: rgba(255,255,255,0.55);
+            --accent: #f093fb;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
-            font-family: 'Yu Gothic', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
-            background: #0a0a1a;
-            color: white;
+            font-family: system-ui, -apple-system, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background: var(--bg);
+            color: var(--text-1);
             overflow: hidden;
-            height: 100vh;
+            display: flex; flex-direction: column; gap: 8px;
+            padding: 12px 16px;
         }
-        #canvas-container { width: 100%; height: 100%; position: relative; }
-        canvas { display: block; }
-
-        .overlay {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            pointer-events: none; z-index: 10;
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 14px;
         }
 
-        .title-section {
-            position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
-            text-align: center; pointer-events: auto; z-index: 20;
+        /* Header: title + controls */
+        header {
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+            gap: 8px 16px;
         }
         h1 {
-            font-size: 28px;
+            font-size: 20px; line-height: 1.3;
             background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            background-clip: text; margin-bottom: 8px;
+            background-clip: text;
         }
-        .subtitle { font-size: 14px; color: rgba(255,255,255,0.6); }
-
-        .phase-indicator {
-            position: absolute; top: 120px; left: 50%; transform: translateX(-50%);
-            background: rgba(255,255,255,0.06); backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 16px 28px; border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.1);
-            pointer-events: auto; color: white; text-align: center;
-            max-width: 600px; width: 70%; min-width: 300px;
-            transition: all 0.4s ease; z-index: 15;
-        }
-        .phase-title { font-size: 16px; font-weight: bold; color: #f093fb; margin-bottom: 6px; }
-        .phase-desc { font-size: 13px; line-height: 1.5; color: rgba(255,255,255,0.8); }
-
-        /* Bottom bar: controls + stats grouped together */
-        .bottom-bar {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; flex-direction: column; align-items: center; gap: 10px;
-            pointer-events: auto; z-index: 25;
-        }
-        .controls {
-            display: flex; gap: 10px;
-            flex-wrap: wrap; justify-content: center;
-        }
+        .subtitle { font-size: 13px; color: var(--text-3); }
+        .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
         button {
-            padding: 8px 20px; font-size: 13px;
-            background: rgba(102, 126, 234, 0.4); color: white;
+            font: inherit; font-size: 13px; color: white;
+            padding: 7px 14px;
+            background: rgba(102, 126, 234, 0.35);
             border: 1px solid rgba(255,255,255,0.15); border-radius: 22px;
-            cursor: pointer; transition: all 0.3s;
-            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-            white-space: nowrap; min-width: 80px;
+            cursor: pointer; transition: background 0.2s;
+            white-space: nowrap;
         }
-        button:hover {
-            background: rgba(118, 75, 162, 0.6);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+        button:hover { background: rgba(118, 75, 162, 0.6); }
+        .speed {
+            display: inline-flex; gap: 2px; padding: 2px;
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 22px;
         }
-        button.active {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-color: rgba(240, 147, 251, 0.4);
-        }
+        .speed button { border: none; background: transparent; padding: 5px 11px; }
+        .speed button:hover { background: rgba(118, 75, 162, 0.45); }
+        .speed button[aria-pressed="true"] { background: linear-gradient(135deg, #667eea, #764ba2); }
 
-        .info-panel {
-            background: rgba(255,255,255,0.06); backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 10px 32px; border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex; gap: 24px;
-        }
-        .stat { text-align: center; }
-        .stat-number {
-            font-size: 26px; font-weight: bold; color: #fff;
-            font-variant-numeric: tabular-nums;
-        }
-        .stat-label { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+        .phase { padding: 8px 18px; text-align: center; }
+        .phase-title { font-size: 16px; font-weight: bold; color: var(--accent); }
+        .phase-desc { font-size: 14px; line-height: 1.55; color: var(--text-2); margin-top: 2px; }
 
-        /* Tooltip */
+        /* Network stage: the canvas only covers this box, so panels never hide nodes */
+        .stage { position: relative; flex: 1; min-height: 140px; }
+        canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
         .tooltip {
-            position: absolute; display: none;
-            background: rgba(20,20,40,0.95); backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 10px 14px; border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.15);
-            font-size: 12px; color: white; pointer-events: none;
-            z-index: 30; max-width: 200px;
-            white-space: pre-line;
+            position: absolute; left: 0; top: 0; z-index: 2;
+            background: rgba(20,20,40,0.95);
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+            padding: 10px 14px; pointer-events: none;
+            font-size: 12px; color: var(--text-2);
         }
-        .tooltip-word { font-size: 16px; font-weight: bold; color: #f093fb; margin-bottom: 4px; }
-        .tooltip-info { color: rgba(255,255,255,0.7); line-height: 1.4; }
+        .tooltip[hidden] { display: none; }
+        .tooltip-word {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 16px; font-weight: bold; color: var(--text-1); margin-bottom: 6px;
+        }
+        .tooltip dl { display: grid; grid-template-columns: auto auto; gap: 2px 14px; }
+        .tooltip dt { color: var(--text-3); }
+        .tooltip dd { color: var(--text-1); text-align: right; }
 
-        @media (max-width: 768px) {
-            h1 { font-size: 20px; }
-            .phase-indicator { top: 90px; width: 90%; padding: 12px; }
-            .phase-title { font-size: 14px; }
-            .phase-desc { font-size: 11px; }
-            button { padding: 7px 14px; font-size: 11px; min-width: 70px; }
-            .info-panel { padding: 8px 18px; gap: 16px; }
-            .stat-number { font-size: 20px; }
+        /* Readout: current input + stats */
+        .readout { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ticker {
+            flex: 1 1 280px; display: flex; align-items: center; gap: 12px;
+            padding: 6px 16px; min-height: 54px;
         }
-        @media (max-height: 600px) {
-            .title-section { top: 5px; }
+        .ticker-no, .ticker-count { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+        .ticker-text { flex: 1; font-size: 18px; color: var(--text-3); }
+        .ticker-text .w { color: var(--text-2); border-bottom: 3px solid var(--wc); transition: background 0.2s; }
+        .ticker-text .w.done { color: var(--text-1); }
+        .ticker-text .w.now { background: rgba(255,255,255,0.14); border-radius: 3px 3px 0 0; }
+        .ticker-text ruby { ruby-align: center; }
+        .ticker-text rt { font-size: 10px; color: var(--text-3); }
+        .stats { display: flex; justify-content: center; gap: 14px; padding: 6px 16px; }
+        .stat { text-align: center; min-width: 54px; }
+        .stat-number { font-size: 22px; font-weight: bold; line-height: 1.25; }
+        .stat-label { font-size: 11px; color: var(--text-3); }
+
+        .legend {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px;
+            font-size: 12px; color: var(--text-2);
+        }
+        .legend .item { display: inline-flex; align-items: center; gap: 5px; }
+        .legend .muted { color: var(--text-3); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+        .glyph-size { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--text-2); }
+        .glyph-link { width: 16px; height: 3px; border-radius: 2px; background: var(--text-2); }
+        .hint-touch { display: none; }
+        @media (hover: none) {
+            .hint-mouse { display: none; }
+            .hint-touch { display: inline; }
+        }
+
+        @media (max-width: 560px) {
+            body { padding: 10px 12px; }
             h1 { font-size: 18px; }
             .subtitle { display: none; }
-            .phase-indicator { top: 40px; padding: 6px 14px; background: transparent; border: none; }
-            .phase-desc { display: none; }
-            .bottom-bar { bottom: 5px; gap: 6px; }
-            .info-panel { padding: 6px 16px; }
+            button { font-size: 12px; padding: 6px 10px; }
+            .speed button { padding: 4px 8px; }
+            .phase { padding: 6px 12px; }
+            .phase-desc { font-size: 12px; line-height: 1.5; }
+            .ticker { padding: 6px 12px; }
+            .ticker-text { font-size: 16px; }
+            .stats { gap: 8px; padding: 4px 10px; }
             .stat-number { font-size: 18px; }
+            .legend { font-size: 11px; gap: 2px 10px; }
+        }
+        @media (max-height: 620px) {
+            .subtitle { display: none; }
         }
     </style>
 </head>
 <body>
-    <div id="canvas-container">
-        <canvas id="networkCanvas"></canvas>
-    </div>
-
-    <div class="overlay">
-        <div class="title-section">
+    <header>
+        <div>
             <h1>言語パターンのネットワーク</h1>
-            <div class="subtitle">用法基盤モデル — 共起関係の可視化</div>
+            <p class="subtitle">用法基盤モデル — 共起関係の可視化</p>
         </div>
-
-        <div class="phase-indicator" id="phaseIndicator">
-            <div class="phase-title" id="phaseTitle">データ収集中…</div>
-            <div class="phase-desc" id="phaseDesc">
-                言語データが蓄積されると、単語同士の共起パターンが浮かび上がります
+        <div class="controls">
+            <button type="button" id="pauseBtn">⏸ 一時停止</button>
+            <button type="button" id="resetBtn">↻ リセット</button>
+            <div class="speed" id="speedGroup" role="group" aria-label="再生速度" title="再生速度">
+                <button type="button" data-speed="0.5" aria-pressed="false">½×</button>
+                <button type="button" data-speed="1" aria-pressed="true">1×</button>
+                <button type="button" data-speed="3" aria-pressed="false">3×</button>
             </div>
         </div>
+    </header>
 
-        <div class="bottom-bar">
-            <div class="controls">
-                <button id="pauseBtn">⏸ 一時停止</button>
-                <button id="resetBtn">↻ リセット</button>
-                <button id="speedBtn" class="active">1× 通常</button>
+    <section class="phase panel">
+        <div class="phase-title" id="phaseTitle"></div>
+        <div class="phase-desc" id="phaseDesc"></div>
+    </section>
+
+    <div class="stage" id="stage">
+        <canvas id="networkCanvas" role="img" aria-label="語の共起ネットワーク"></canvas>
+        <div class="tooltip" id="tooltip" hidden>
+            <div class="tooltip-word" id="tooltipWord"></div>
+            <dl id="tooltipInfo"></dl>
+        </div>
+    </div>
+
+    <div class="readout">
+        <div class="ticker panel">
+            <span class="ticker-no" id="tickerNo"></span>
+            <span class="ticker-text" id="tickerText"></span>
+            <span class="ticker-count" id="tickerCount"></span>
+        </div>
+        <div class="stats panel">
+            <div class="stat">
+                <div class="stat-number" id="utterCount">0</div>
+                <div class="stat-label">発話数</div>
             </div>
-            <div class="info-panel">
-                <div class="stat">
-                    <div class="stat-number" id="wordCount">0</div>
-                    <div class="stat-label">語彙数</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number" id="linkCount">0</div>
-                    <div class="stat-label">共起関係</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number" id="patternCount">0</div>
-                    <div class="stat-label">パターン</div>
-                </div>
+            <div class="stat">
+                <div class="stat-number" id="wordCount">0</div>
+                <div class="stat-label">語彙数</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="linkCount">0</div>
+                <div class="stat-label">共起関係</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="entrenchedCount">0</div>
+                <div class="stat-label">定着ペア</div>
             </div>
         </div>
     </div>
 
-    <div class="tooltip" id="tooltip">
-        <div class="tooltip-word" id="tooltipWord"></div>
-        <div class="tooltip-info" id="tooltipInfo"></div>
+    <div class="legend" id="legend">
+        <span class="item"><span class="glyph-size"></span>円の大きさ＝出現回数</span>
+        <span class="item"><span class="glyph-link"></span>線の太さ＝共起回数</span>
+        <span class="item muted">
+            <span class="hint-mouse">語にカーソルを合わせると詳細表示／ドラッグで移動</span>
+            <span class="hint-touch">語をタップすると詳細表示</span>
+        </span>
     </div>
 
     <script>
     (() => {
-        const canvas = document.getElementById('networkCanvas');
-        const ctx = canvas.getContext('2d');
-
-        // --- Corpus data: word groups with co-occurrence relationships ---
-        const wordGroups = [
-            { words: ['食べる', 'ご飯', '朝', '晩', '昼'], category: '食事', color: '#667eea' },
-            { words: ['食べる', 'パン', '焼く', 'バター', 'トースト'], category: '食事', color: '#667eea' },
-            { words: ['飲む', 'コーヒー', '朝', 'カフェ', 'お茶'], category: '飲み物', color: '#5b8def' },
-            { words: ['読む', '本', '図書館', '小説', '新聞'], category: '読書', color: '#7c6eea' },
-            { words: ['書く', '手紙', 'メール', '送る', '届く'], category: '通信', color: '#9b6eea' },
-            { words: ['歩く', '道', '散歩', '公園', '走る'], category: '移動', color: '#ea6eb7' },
-            { words: ['見る', 'テレビ', '映画', '番組', '動画'], category: '視聴', color: '#f093fb' },
-            { words: ['話す', '友達', '電話', '会話', '笑う'], category: '会話', color: '#ea8c6e' },
-            { words: ['勉強', '学校', '先生', '授業', 'テスト'], category: '学習', color: '#6eeaa8' },
-            { words: ['寝る', '夜', '起きる', '朝', '眠い'], category: '生活', color: '#eae16e' },
-            // Grammar patterns
-            { words: ['〜てしまう', '〜ちゃう', '食べ', '忘れ', '言っ'], category: '文法', color: '#ff6b9d' },
-            { words: ['〜ている', '〜てる', '読ん', '待っ', '考え'], category: '文法', color: '#ff6b9d' },
+        // --- Corpus data ---
+        // Categories only color the nodes as a reading aid; the network is built from co-occurrence alone.
+        // Colors: four slots validated against the dark surface (CVD-safe only up to four; every node is labeled).
+        const CATEGORIES = [
+            { name: '食・生活', color: '#c98500', words: ['朝', '昼', '夜', 'ご飯', 'パン', '弁当', 'コーヒー', 'お茶', '水', 'カフェ', '食べる', '飲む', '焼く', '作る', '起きる', '寝る', '早い', '遅い', '眠い'] },
+            { name: '趣味・交流', color: '#d55181', words: ['本', '小説', '新聞', '映画', 'テレビ', '動画', '公園', '散歩', '友達', '電話', 'メール', '手紙', '読む', '見る', '歩く', '話す', '送る', '書く', '言う', '待つ'] },
+            { name: '学校', color: '#008300', words: ['学校', '授業', '先生', 'テスト', '宿題', '図書館', '勉強', '質問', '受ける', '忘れる'] },
+            { name: '文法', color: '#9085e9', words: ['〜てしまう', '〜ちゃう', '〜ている', '〜てる'] },
+        ];
+        // Utterances, most frequent first: rank r is sampled with probability ∝ 1/r^ZIPF_S (Zipf's law).
+        // [word] becomes a node; [surface|lemma] when the surface form differs. Lemmas starting with 〜 are grammar patterns.
+        const UTTERANCES = [
+            '[朝][ご飯]を[食べる]', '[コーヒー]を[飲む]', '[友達]と[話す]', '[映画]を[見る]',
+            '[朝][早く|早い][起きる]', '[宿題]を[忘れ|忘れる][ちゃった|〜ちゃう]', '[本]を[読む]',
+            '[テレビ]を[見|見る][てる|〜てる]', '[授業]を[受ける]', '[夜][遅く|遅い][寝る]',
+            '[お茶]を[飲む]', '全部[食べ|食べる][ちゃった|〜ちゃう]', '[友達]を[待っ|待つ][てる|〜てる]',
+            '[メール]を[送る]', '[パン]を[焼く]', '[宿題]を[忘れ|忘れる][てしまった|〜てしまう]',
+            '[図書館]で[本]を[読む]', '[小説]を[読ん|読む][でいる|〜ている]', '[テスト]を[受ける]',
+            '[昼][ご飯]を[食べる]', '[授業]中に[寝|寝る][ちゃった|〜ちゃう]', '[カフェ]で[コーヒー]を[飲む]',
+            '[友達]に[電話]する', '[動画]を[見|見る][てる|〜てる]', '[学校]で[勉強]する', '[朝]は[眠い]',
+            'つい[言っ|言う][てしまった|〜てしまう]', '[先生]に[質問]する', '[公園]を[散歩]する',
+            '[本]を[読ん|読む][でる|〜てる]', '[手紙]を[書く]', '[映画]を[見|見る][ている|〜ている]',
+            'お[弁当]を[作る]', '[友達]に[言っ|言う][ちゃった|〜ちゃう]', '[新聞]を[読む]', '[公園]を[歩く]',
+            '[水]を[飲む]', '[テスト]の前に[勉強]する', '[先生]を[待っ|待つ][ている|〜ている]',
+            '[授業]中に[寝|寝る][てしまった|〜てしまう]', '[メール]を[書く]', '[パン]を[食べ|食べる][てしまった|〜てしまう]',
+            '[図書館]で[勉強]する', '[夜]に[テレビ]を[見る]',
         ];
 
-        // --- State ---
-        let nodes = [];
-        let links = [];
-        let isAnimating = true;
-        let speed = 1;
-        let groupIndex = 0;
-        let wordIndex = 0;
-        let lastAddTime = 0;
-        let addInterval = 800;
-        let patternsFound = 0;
-        let isDragging = false;
-        let dragNode = null;
-        let mouseX = 0, mouseY = 0;
-        let hoverNode = null;
+        const ZIPF_S = 1;
+        const SEED = 7;           // fixed seed: every reset replays the same input sequence
+        const TICK_MS = 450;      // one word per tick at 1×
+        const ENTRENCH = 5;       // a pair that co-occurred this often counts as entrenched (定着)
+        const SCHEMA_TYPES = 3;   // the last phase starts once a grammar pattern has appeared in this many utterance types
+        const FREQ_REF = 30, COUNT_REF = 15;  // scale floors, so early nodes and links don't start at full size
+        const STEP_MS = 1000 / 60;
+        const BG = '#0a0a1a';
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
+        const PHASES = [
+            { title: 'データ収集中…',
+              desc: () => '発話が1つずつ入力されます。同じ発話で使われた語どうしが線（共起関係）で結ばれます。' },
+            { title: 'パターンが見え始めています',
+              desc: () => 'よく一緒に使われる語どうしが引き寄せられ、まとまりができ始めます。色は場面の目安で、ネットワークの計算には使っていません。' },
+            { title: 'よく使う組み合わせの定着',
+              desc: () => `何度も入力される発話ほど、語（円）は大きく、共起関係（線）は太くなります。${ENTRENCH}回以上共起したペアを「定着」として数えています。` },
+            { title: '言語知識の構造化',
+              desc: () => '十分なデータから、文法パターンが浮かび上がりました。' },
+        ];
 
-        function findNode(word) {
-            return nodes.find(n => n.word === word);
-        }
-
-        function addWord(word, category, color) {
-            let existing = findNode(word);
-            if (existing) {
-                existing.frequency++;
-                existing.targetRadius = Math.min(6 + existing.frequency * 1.5, 24);
-                return existing;
+        const corpus = UTTERANCES.map(src => {
+            const parts = [];
+            let last = 0;
+            for (const m of src.matchAll(/\[([^\]|]+)(?:\|([^\]]+))?\]/g)) {
+                if (m.index > last) parts.push({ text: src.slice(last, m.index) });
+                parts.push({ text: m[1], lemma: m[2] || m[1] });
+                last = m.index + m[0].length;
             }
+            if (last < src.length) parts.push({ text: src.slice(last) });
+            return { parts, words: parts.filter(p => p.lemma).map(p => p.lemma), seen: 0 };
+        });
 
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 100 + Math.random() * 150;
+        const categoryOf = new Map();
+        CATEGORIES.forEach(c => c.words.forEach(w => categoryOf.set(w, c)));
+        const OTHER = { name: 'その他', color: '#8a8aa0' };
+        const catOf = word => categoryOf.get(word) || OTHER;
 
+        // --- Zipf sampling with a seeded PRNG ---
+        const weights = corpus.map((_, i) => 1 / Math.pow(i + 1, ZIPF_S));
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
+        let cum = 0;
+        const cumulative = weights.map(w => (cum += w / totalWeight));
+
+        function mulberry32(a) {
+            return () => {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                let t = Math.imul(a ^ a >>> 15, 1 | a);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+
+        function sampleUtterance() {
+            const r = random();
+            const i = cumulative.findIndex(c => r < c);
+            return i === -1 ? corpus.length - 1 : i;
+        }
+
+        // --- DOM ---
+        const $ = id => document.getElementById(id);
+        const el = (tag, text) => Object.assign(document.createElement(tag), { textContent: text });
+        const dotEl = color => {
+            const dot = el('span', '');
+            dot.className = 'dot';
+            dot.style.setProperty('--c', color);
+            return dot;
+        };
+        const canvas = $('networkCanvas');
+        const ctx = canvas.getContext('2d');
+        const stage = $('stage');
+        const tooltip = $('tooltip');
+        const pauseBtn = $('pauseBtn');
+        const FONT = getComputedStyle(document.body).fontFamily;
+
+        // --- State ---
+        const nodes = [], links = [];
+        const nodeByWord = new Map(), linkByKey = new Map();
+        const currentNodes = new Set();
+        let random, current, utterCount, entrenchedCount, maxFreq, maxCount, phase;
+        let paused = false, speed = 1, inView = false;
+        let W = 0, H = 0, sizeScale = 1;
+        let hoverNode = null, dragNode = null;
+        let rafId = 0, lastTime = 0, tickAcc = 0, physAcc = 0;
+        let tooltipKey = '';
+
+        const freqScale = f => Math.log1p(f) / Math.log1p(Math.max(maxFreq, FREQ_REF));
+        const countScale = c => Math.log1p(c) / Math.log1p(Math.max(maxCount, COUNT_REF));
+
+        // --- Input: one word per tick, one empty tick between utterances ---
+        function step() {
+            if (current && current.pos >= current.u.words.length) { current = null; return; }
+            if (!current) {
+                const idx = sampleUtterance();
+                const u = corpus[idx];
+                u.seen++;
+                utterCount++;
+                current = { idx, u, pos: 0 };
+                currentNodes.clear();
+                renderTicker();
+            }
+            const { u, idx } = current;
+            const prev = u.words.slice(0, current.pos).map(w => nodeByWord.get(w));
+            const word = u.words[current.pos];
+            const node = nodeByWord.get(word) || createNode(word, prev);
+            node.freq++;
+            node.pulse = 1;
+            node.types.add(idx);
+            maxFreq = Math.max(maxFreq, node.freq);
+            prev.forEach(p => addLink(node, p));
+            currentNodes.add(node);
+            current.pos++;
+            updateTickerProgress();
+            updateStats();
+            updatePhase();
+        }
+
+        function createNode(word, placed) {
+            // New words appear next to the words they co-occur with
+            let x = W / 2 + (Math.random() - 0.5) * W * 0.5;
+            let y = H / 2 + (Math.random() - 0.5) * H * 0.5;
+            if (placed.length) {
+                x = placed.reduce((s, n) => s + n.x, 0) / placed.length + (Math.random() - 0.5) * 40;
+                y = placed.reduce((s, n) => s + n.y, 0) / placed.length + (Math.random() - 0.5) * 40;
+            }
             const node = {
-                word,
-                category,
-                color,
-                x: cx + Math.cos(angle) * dist,
-                y: cy + Math.sin(angle) * dist,
-                vx: 0, vy: 0,
-                radius: 0,
-                targetRadius: 8,
-                frequency: 1,
-                opacity: 0,
-                born: Date.now()
+                word, cat: catOf(word), x, y, vx: 0, vy: 0,
+                r: 0, freq: 0, degree: 0, types: new Set(),
+                pulse: 0, appear: 0, fontSize: 13, labelW: word.length * 13, measuredSize: 0,
             };
             nodes.push(node);
+            nodeByWord.set(word, node);
             return node;
         }
 
         function addLink(a, b) {
-            let existing = links.find(l =>
-                (l.source === a && l.target === b) || (l.source === b && l.target === a)
-            );
-            if (existing) {
-                existing.strength = Math.min(existing.strength + 0.3, 4);
-                return;
+            const key = a.word < b.word ? a.word + '|' + b.word : b.word + '|' + a.word;
+            let link = linkByKey.get(key);
+            if (!link) {
+                link = { a, b, count: 0, flash: 0 };
+                linkByKey.set(key, link);
+                links.push(link);
+                a.degree++;
+                b.degree++;
             }
-            links.push({
-                source: a, target: b,
-                strength: 0.5,
-                opacity: 0
-            });
+            link.count++;
+            link.flash = 1;
+            maxCount = Math.max(maxCount, link.count);
+            if (link.count === ENTRENCH) entrenchedCount++;
         }
 
-        function addNextWord() {
-            if (groupIndex >= wordGroups.length) {
-                groupIndex = 0;
-            }
+        // --- Readouts ---
+        function renderTicker() {
+            $('tickerNo').textContent = `入力 #${utterCount}`;
+            $('tickerText').replaceChildren(...current.u.parts.map(p => {
+                if (!p.lemma) return p.text;
+                const span = el('span', '');
+                span.className = 'w';
+                span.style.setProperty('--wc', catOf(p.lemma).color);
+                if (p.lemma === p.text) span.textContent = p.text;
+                else {
+                    // Show the lemma (the node's name) above the surface form
+                    const ruby = document.createElement('ruby');
+                    ruby.append(p.text, el('rt', p.lemma));
+                    span.append(ruby);
+                }
+                return span;
+            }));
+            $('tickerCount').textContent = `${current.u.seen}回目`;
+        }
 
-            const group = wordGroups[groupIndex];
-            const word = group.words[wordIndex];
-            const node = addWord(word, group.category, group.color);
-
-            // Link to previously added words in same group
-            for (let i = 0; i < wordIndex; i++) {
-                const prev = findNode(group.words[i]);
-                if (prev) addLink(node, prev);
-            }
-
-            wordIndex++;
-            if (wordIndex >= group.words.length) {
-                wordIndex = 0;
-                groupIndex++;
-                patternsFound++;
-            }
-
-            updateStats();
-            updatePhaseText();
+        function updateTickerProgress() {
+            $('tickerText').querySelectorAll('.w').forEach((s, i) => {
+                s.classList.toggle('done', i < current.pos);
+                s.classList.toggle('now', i === current.pos - 1);
+            });
         }
 
         function updateStats() {
-            document.getElementById('wordCount').textContent = nodes.length;
-            document.getElementById('linkCount').textContent = links.length;
-            document.getElementById('patternCount').textContent = patternsFound;
+            $('utterCount').textContent = utterCount;
+            $('wordCount').textContent = nodes.length;
+            $('linkCount').textContent = links.length;
+            $('entrenchedCount').textContent = entrenchedCount;
         }
 
-        function updatePhaseText() {
-            const n = nodes.length;
-            const el = document.getElementById('phaseTitle');
-            const desc = document.getElementById('phaseDesc');
-
-            if (n < 10) {
-                el.textContent = 'データ収集中…';
-                desc.textContent = '言語データが蓄積されると、単語同士の共起パターンが浮かび上がります';
-            } else if (n < 25) {
-                el.textContent = 'パターンが見え始めています';
-                desc.textContent = '同じ文脈で使われる単語同士が近づき、クラスターを形成しています';
-            } else if (n < 40) {
-                el.textContent = 'ネットワーク構造の発達';
-                desc.textContent = '共起頻度の高いペアほど結びつきが強くなり、コロケーションとして定着します';
-            } else {
-                el.textContent = '言語知識の構造化';
-                desc.textContent = '十分なデータから、文法パターンや慣用表現が浮かび上がりました';
+        // Phases follow the data, so the text never runs ahead of what is on screen
+        function computePhase() {
+            if (entrenchedCount > 0) {
+                const grammarSeen = nodes.some(n => n.word.startsWith('〜') && n.types.size >= SCHEMA_TYPES);
+                return grammarSeen ? 3 : 2;
             }
+            return utterCount >= 6 ? 1 : 0;
         }
 
-        // --- Physics simulation ---
+        function updatePhase() {
+            const p = computePhase();
+            if (p === phase) return;
+            phase = p;
+            $('phaseTitle').textContent = PHASES[p].title;
+            $('phaseDesc').textContent = PHASES[p].desc();
+        }
+
+        // --- Physics: spacing adapts to the stage area ---
+        function labelBox(n) {
+            return {
+                w: Math.max(n.r * 2, n.labelW) + 14,
+                h: n.r * 2 + n.fontSize + 9,
+                cy: n.y - (n.fontSize + 5) / 2,
+            };
+        }
+
+        function clampToStage(n) {
+            const halfW = Math.max(n.r, n.labelW / 2) + 4;
+            n.x = Math.max(halfW, Math.min(W - halfW, n.x));
+            n.y = Math.max(n.r + n.fontSize + 8, Math.min(H - n.r - 4, n.y));
+        }
+
         function simulate() {
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
+            const n = nodes.length;
+            if (!n) return;
+            const spacing = Math.max(34, Math.min(90, Math.sqrt(W * H / Math.max(n, 12)) * 0.75));
+            const range = spacing * 1.8;
+            const gx = 0.0006, gy = 0.0006 * Math.max(1, W / H);
+            const boxes = nodes.map(labelBox);
 
-            // Center gravity
-            nodes.forEach(node => {
-                const dx = cx - node.x;
-                const dy = cy - node.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 0) {
-                    node.vx += (dx / dist) * 0.05;
-                    node.vy += (dy / dist) * 0.05;
-                }
-            });
-
-            // Node repulsion
-            for (let i = 0; i < nodes.length; i++) {
-                for (let j = i + 1; j < nodes.length; j++) {
-                    const a = nodes[i], b = nodes[j];
-                    let dx = b.x - a.x;
-                    let dy = b.y - a.y;
-                    let dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 1) dist = 1;
-                    const minDist = 50;
-                    if (dist < minDist) {
-                        const force = (minDist - dist) / dist * 0.8;
-                        const fx = dx * force;
-                        const fy = dy * force;
+            for (const a of nodes) {
+                a.vx += (W / 2 - a.x) * gx;
+                a.vy += (H / 2 - a.y) * gy;
+            }
+            for (let i = 0; i < n; i++) {
+                const a = nodes[i], ba = boxes[i];
+                for (let j = i + 1; j < n; j++) {
+                    const b = nodes[j], bb = boxes[j];
+                    let dx = b.x - a.x, dy = b.y - a.y;
+                    let d = Math.hypot(dx, dy);
+                    if (d < 0.01) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; d = Math.hypot(dx, dy); }
+                    if (d < range) {
+                        const f = (range - d) / range * 0.8;
+                        const fx = dx / d * f, fy = dy / d * f;
                         a.vx -= fx; a.vy -= fy;
                         b.vx += fx; b.vy += fy;
                     }
+                    // Labels must not overlap: separate the boxes along the axis of least overlap
+                    const dcy = bb.cy - ba.cy;
+                    const ox = (ba.w + bb.w) / 2 - Math.abs(dx);
+                    const oy = (ba.h + bb.h) / 2 - Math.abs(dcy);
+                    if (ox > 0 && oy > 0) {
+                        if (ox < oy) {
+                            const s = (dx >= 0 ? 1 : -1) * ox * 0.12;
+                            a.vx -= s; b.vx += s;
+                        } else {
+                            const s = (dcy >= 0 ? 1 : -1) * oy * 0.12;
+                            a.vy -= s; b.vy += s;
+                        }
+                    }
                 }
             }
-
-            // Link attraction
-            links.forEach(link => {
-                const a = link.source, b = link.target;
-                let dx = b.x - a.x;
-                let dy = b.y - a.y;
-                let dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < 1) dist = 1;
-                const targetDist = 60 - link.strength * 5;
-                const force = (dist - targetDist) / dist * 0.02 * link.strength;
-                const fx = dx * force;
-                const fy = dy * force;
+            for (const l of links) {
+                const { a, b } = l;
+                const dx = b.x - a.x, dy = b.y - a.y;
+                const d = Math.max(Math.hypot(dx, dy), 0.01);
+                const t = countScale(l.count);
+                const f = (d - spacing * (1 - 0.35 * t) - (a.r + b.r) * 0.5) * (0.012 + 0.03 * t);
+                const fx = dx / d * f, fy = dy / d * f;
                 a.vx += fx; a.vy += fy;
                 b.vx -= fx; b.vy -= fy;
-            });
-
-            // Apply velocity with damping
-            nodes.forEach(node => {
-                if (node === dragNode) return;
-                node.vx *= 0.85;
-                node.vy *= 0.85;
-                node.x += node.vx;
-                node.y += node.vy;
-
-                // Keep in bounds
-                const margin = 60;
-                node.x = Math.max(margin, Math.min(canvas.width - margin, node.x));
-                node.y = Math.max(margin, Math.min(canvas.height - margin, node.y));
-            });
-
-            // Animate properties
-            nodes.forEach(node => {
-                node.opacity = Math.min(node.opacity + 0.03, 1);
-                node.radius += (node.targetRadius - node.radius) * 0.08;
-            });
-            links.forEach(link => {
-                link.opacity = Math.min(link.opacity + 0.02, 0.8);
-            });
+            }
+            for (const a of nodes) {
+                if (a === dragNode) { a.vx = a.vy = 0; continue; }
+                a.vx *= 0.8;
+                a.vy *= 0.8;
+                const v = Math.hypot(a.vx, a.vy);
+                if (v > 10) { a.vx *= 10 / v; a.vy *= 10 / v; }
+                a.x += a.vx;
+                a.y += a.vy;
+                clampToStage(a);
+            }
         }
 
-        // --- Helper: get connected nodes ---
-        function getConnectedNodes(node) {
-            const connected = new Set();
-            links.forEach(l => {
-                if (l.source === node) connected.add(l.target);
-                if (l.target === node) connected.add(l.source);
-            });
-            return connected;
-        }
-
-        // --- Helper: parse hex color to RGB ---
-        function hexToRgb(hex) {
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
-            return { r, g, b };
+        // Sizes ease toward their targets; input pulses and link flashes fade out
+        function easeVisuals(dt) {
+            let busy = false;
+            const ease = 1 - Math.pow(0.85, dt / STEP_MS);
+            const base = W < 480 ? 11 : 13;
+            for (const n of nodes) {
+                const t = freqScale(n.freq);
+                const target = (5 + 15 * t) * sizeScale;
+                n.r += (target - n.r) * ease;
+                n.fontSize = Math.round(base + 5 * t * sizeScale);
+                n.appear = Math.min(1, n.appear + dt / 400);
+                n.pulse = Math.max(0, n.pulse - dt / 900);
+                if (Math.abs(target - n.r) > 0.1 || n.appear < 1 || n.pulse > 0) busy = true;
+            }
+            for (const l of links) {
+                l.flash = Math.max(0, l.flash - dt / 1200);
+                if (l.flash > 0) busy = true;
+            }
+            return busy;
         }
 
         // --- Render ---
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const connectedToHover = hoverNode ? getConnectedNodes(hoverNode) : new Set();
-            const dimming = hoverNode !== null;
-
-            // Draw links
-            links.forEach(link => {
-                const a = link.source, b = link.target;
-                let alpha = link.opacity * 0.5;
-                const width = link.strength;
-
-                // Color links by source node category color
-                const linkColor = hexToRgb(a.color);
-
-                if (dimming) {
-                    const isHighlighted = (a === hoverNode || b === hoverNode);
-                    if (isHighlighted) {
-                        alpha = Math.min(link.opacity * 0.9, 0.8);
-                    } else {
-                        alpha *= 0.15;
-                    }
-                }
-
-                ctx.beginPath();
-                ctx.moveTo(a.x, a.y);
-                ctx.lineTo(b.x, b.y);
-                ctx.strokeStyle = `rgba(${linkColor.r}, ${linkColor.g}, ${linkColor.b}, ${alpha})`;
-                ctx.lineWidth = width;
-                ctx.stroke();
-            });
-
-            // Draw nodes
-            nodes.forEach(node => {
-                const r = node.radius;
-                if (r < 0.5) return;
-
-                let nodeAlpha = node.opacity;
-                if (dimming && node !== hoverNode && !connectedToHover.has(node)) {
-                    nodeAlpha *= 0.25;
-                }
-
-                // Glow
-                const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, r * 3);
-                glow.addColorStop(0, node.color + (dimming && nodeAlpha < 0.5 ? '15' : '40'));
-                glow.addColorStop(1, node.color + '00');
-                ctx.fillStyle = glow;
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, r * 3, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Node circle
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
-                const isHighlighted = node === hoverNode || connectedToHover.has(node);
-                ctx.fillStyle = node.color + (isHighlighted ? 'ff' : (dimming ? '40' : 'cc'));
-                ctx.fill();
-
-                if (node === hoverNode) {
-                    ctx.strokeStyle = '#ffffffaa';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                } else if (connectedToHover.has(node)) {
-                    ctx.strokeStyle = '#ffffff44';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                }
-
-                // Label
-                const fontSize = Math.max(10, Math.min(r * 1.2, 16));
-                ctx.font = `bold ${fontSize}px 'Yu Gothic', sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = `rgba(255,255,255,${nodeAlpha * 0.95})`;
-                ctx.fillText(node.word, node.x, node.y - r - 10);
-            });
+        function disc(x, y, r, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
         }
 
-        // --- Animation loop ---
-        function animate(timestamp) {
-            requestAnimationFrame(animate);
+        function ring(x, y, r, color, width) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.stroke();
+        }
 
-            if (isAnimating) {
-                if (timestamp - lastAddTime > addInterval / speed) {
-                    addNextWord();
-                    lastAddTime = timestamp;
-                }
-                simulate();
+        function draw() {
+            ctx.clearRect(0, 0, W, H);
+            const focus = hoverNode;
+            const near = new Set();
+            if (focus) links.forEach(l => {
+                if (l.a === focus) near.add(l.b);
+                else if (l.b === focus) near.add(l.a);
+            });
+            const faded = n => focus && n !== focus && !near.has(n);
+
+            ctx.lineCap = 'round';
+            for (const l of links) {
+                const t = countScale(l.count);
+                let alpha = 0.15 + 0.45 * t;
+                if (focus) alpha = (l.a === focus || l.b === focus) ? Math.max(alpha, 0.85) : alpha * 0.2;
+                ctx.strokeStyle = `rgba(200, 205, 255, ${Math.min(1, alpha + l.flash * 0.6)})`;
+                ctx.lineWidth = 0.75 + 4.25 * t;
+                ctx.beginPath();
+                ctx.moveTo(l.a.x, l.a.y);
+                ctx.lineTo(l.b.x, l.b.y);
+                ctx.stroke();
             }
 
+            for (const n of nodes) {
+                const alpha = n.appear * (faded(n) ? 0.25 : 1);
+                if (n.pulse > 0) {
+                    ctx.globalAlpha = alpha * n.pulse;
+                    ring(n.x, n.y, n.r + 3 + (1 - n.pulse) * 12, n.cat.color, 2);
+                }
+                ctx.globalAlpha = alpha;
+                disc(n.x, n.y, n.r + 2, BG);   // 2px surface gap separates touching marks
+                disc(n.x, n.y, n.r, n.cat.color);
+                if (n === focus) ring(n.x, n.y, n.r + 3, '#ffffff', 2);
+                else if (currentNodes.has(n)) ring(n.x, n.y, n.r + 3, 'rgba(255,255,255,0.75)', 1.5);
+            }
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.lineJoin = 'round';
+            for (const n of nodes) {
+                ctx.font = `600 ${n.fontSize}px ${FONT}`;
+                if (n.measuredSize !== n.fontSize) {
+                    n.labelW = ctx.measureText(n.word).width;
+                    n.measuredSize = n.fontSize;
+                }
+                ctx.globalAlpha = n.appear * (faded(n) ? 0.3 : 1);
+                const y = n.y - n.r - 3;
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(10,10,26,0.85)';
+                ctx.strokeText(n.word, n.x, y);
+                ctx.fillStyle = '#f0f0f5';
+                ctx.fillText(n.word, n.x, y);
+            }
+            ctx.globalAlpha = 1;
+            updateTooltip(near);
+        }
+
+        function updateTooltip(near) {
+            const n = hoverNode;
+            if (!n) { tooltip.hidden = true; tooltipKey = ''; return; }
+            const key = `${n.word}|${n.freq}|${n.degree}`;
+            if (key !== tooltipKey) {
+                tooltipKey = key;
+                $('tooltipWord').replaceChildren(dotEl(n.cat.color), n.word);
+                $('tooltipInfo').replaceChildren(...[
+                    ['出現回数', `${n.freq}回`],
+                    ['共起する語', `${n.degree}語`],
+                    ['カテゴリー', n.cat.name],
+                ].flatMap(([k, v]) => [el('dt', k), el('dd', v)]));
+            }
+            tooltip.hidden = false;
+            const tw = tooltip.offsetWidth, th = tooltip.offsetHeight;
+            // Right, left, above or below: take the spot that covers the fewest highlighted words
+            const spots = [
+                [n.x + n.r + 14, n.y - th / 2],
+                [n.x - n.r - 14 - tw, n.y - th / 2],
+                [n.x - tw / 2, n.y - n.r - n.fontSize - 12 - th],
+                [n.x - tw / 2, n.y + n.r + 12],
+            ].map(([x, y]) => [Math.max(4, Math.min(W - tw - 4, x)), Math.max(4, Math.min(H - th - 4, y))]);
+            const covered = ([x, y]) => [n, ...near].filter(m =>
+                m.x + m.r > x && m.x - m.r < x + tw && m.y + m.r > y && m.y - m.r - m.fontSize < y + th).length;
+            let best = spots[0];
+            for (const s of spots) if (covered(s) < covered(best)) best = s;
+            tooltip.style.transform = `translate(${best[0]}px, ${best[1]}px)`;
+        }
+
+        // --- Animation loop: runs only while visible; idles when paused and settled ---
+        function wake() {
+            if (rafId || !inView) return;
+            lastTime = performance.now();
+            rafId = requestAnimationFrame(frame);
+        }
+
+        function frame(time) {
+            rafId = 0;
+            if (!inView) return;
+            const dt = Math.max(0, Math.min(time - lastTime, 100));
+            lastTime = time;
+            if (!paused) {
+                tickAcc += dt * speed;
+                while (tickAcc >= TICK_MS) { tickAcc -= TICK_MS; step(); }
+                physAcc += dt;
+                while (physAcc >= STEP_MS) { physAcc -= STEP_MS; simulate(); }
+            }
+            const busy = easeVisuals(dt);
             draw();
+            if (!paused || busy) rafId = requestAnimationFrame(frame);
+        }
+
+        function resize() {
+            const rect = stage.getBoundingClientRect();
+            W = rect.width;
+            H = rect.height;
+            sizeScale = Math.max(0.55, Math.min(1, Math.sqrt(W * H / 320000)));   // smaller stages get smaller circles
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.round(W * dpr);
+            canvas.height = Math.round(H * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            nodes.forEach(clampToStage);
+            wake();
         }
 
         // --- Interaction ---
-        function getNodeAt(x, y) {
+        function nodeAt(x, y) {
             for (let i = nodes.length - 1; i >= 0; i--) {
                 const n = nodes[i];
-                const dx = x - n.x;
-                const dy = y - n.y;
-                if (dx * dx + dy * dy < (n.radius + 8) * (n.radius + 8)) {
-                    return n;
-                }
+                const dx = x - n.x, dy = y - n.y;
+                const hitR = Math.max(n.r + 6, 12);
+                if (dx * dx + dy * dy <= hitR * hitR) return n;
+                const labelBottom = n.y - n.r - 3;
+                if (Math.abs(dx) <= n.labelW / 2 + 2 && y <= labelBottom && y >= labelBottom - n.fontSize - 2) return n;
             }
             return null;
         }
 
+        function localPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return [e.clientX - rect.left, e.clientY - rect.top];
+        }
+
+        function setHover(n) {
+            if (n === hoverNode) return;
+            hoverNode = n;
+            if (!dragNode) canvas.style.cursor = n ? 'grab' : 'default';
+            wake();
+        }
+
+        function moveDrag(e) {
+            [dragNode.x, dragNode.y] = localPos(e);
+            clampToStage(dragNode);
+            wake();
+        }
+
+        function endDrag(e) {
+            dragNode = null;
+            setHover(e.target === canvas ? nodeAt(...localPos(e)) : null);
+            canvas.style.cursor = hoverNode ? 'grab' : 'default';
+        }
+
         canvas.addEventListener('mousedown', e => {
-            const node = getNodeAt(e.clientX, e.clientY);
-            if (node) {
-                isDragging = true;
-                dragNode = node;
-            }
+            const n = nodeAt(...localPos(e));
+            if (!n) return;
+            dragNode = n;
+            setHover(n);
+            canvas.style.cursor = 'grabbing';
+            e.preventDefault();
         });
-
-        canvas.addEventListener('mousemove', e => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-            if (isDragging && dragNode) {
-                dragNode.x = e.clientX;
-                dragNode.y = e.clientY;
-                dragNode.vx = 0;
-                dragNode.vy = 0;
-            }
-
-            const node = getNodeAt(e.clientX, e.clientY);
-            hoverNode = node;
-            const tooltip = document.getElementById('tooltip');
-            if (node) {
-                canvas.style.cursor = 'pointer';
-                const connCount = links.filter(l => l.source === node || l.target === node).length;
-                document.getElementById('tooltipWord').textContent = node.word;
-                document.getElementById('tooltipInfo').textContent =
-                    `カテゴリー: ${node.category}\n出現回数: ${node.frequency}\n共起関係: ${connCount}`;
-                tooltip.style.display = 'block';
-                tooltip.style.left = (e.clientX + 15) + 'px';
-                tooltip.style.top = (e.clientY - 10) + 'px';
-            } else {
-                canvas.style.cursor = 'default';
-                tooltip.style.display = 'none';
-            }
+        window.addEventListener('mousemove', e => {
+            if (dragNode && !(e.buttons & 1)) endDrag(e);   // button was released outside the iframe
+            if (dragNode) moveDrag(e);
+            else if (e.target === canvas) setHover(nodeAt(...localPos(e)));
         });
+        window.addEventListener('mouseup', e => { if (dragNode) endDrag(e); });
+        canvas.addEventListener('mouseleave', () => { if (!dragNode) setHover(null); });
 
-        canvas.addEventListener('mouseup', () => { isDragging = false; dragNode = null; });
-        canvas.addEventListener('mouseleave', () => {
-            isDragging = false; dragNode = null; hoverNode = null;
-            document.getElementById('tooltip').style.display = 'none';
-        });
-
-        // Touch
+        // Touch: tapping a word pins its tooltip; tapping empty space clears it and lets the page scroll
         canvas.addEventListener('touchstart', e => {
-            const t = e.touches[0];
-            const node = getNodeAt(t.clientX, t.clientY);
-            if (node) { isDragging = true; dragNode = node; e.preventDefault(); }
+            const n = nodeAt(...localPos(e.touches[0]));
+            setHover(n);
+            if (n) { dragNode = n; e.preventDefault(); }
         }, { passive: false });
         canvas.addEventListener('touchmove', e => {
-            if (isDragging && dragNode) {
-                dragNode.x = e.touches[0].clientX;
-                dragNode.y = e.touches[0].clientY;
-                dragNode.vx = 0; dragNode.vy = 0;
-                e.preventDefault();
-            }
+            if (!dragNode) return;
+            moveDrag(e.touches[0]);
+            e.preventDefault();
         }, { passive: false });
-        canvas.addEventListener('touchend', () => { isDragging = false; dragNode = null; });
+        ['touchend', 'touchcancel'].forEach(type => canvas.addEventListener(type, () => { dragNode = null; }));
 
-        // UI buttons
-        const pauseBtn = document.getElementById('pauseBtn');
-        const speedBtn = document.getElementById('speedBtn');
+        // --- Controls ---
+        function setPaused(p) {
+            paused = p;
+            pauseBtn.textContent = p ? '▶ 再生' : '⏸ 一時停止';
+            wake();
+        }
 
-        pauseBtn.addEventListener('click', () => {
-            isAnimating = !isAnimating;
-            pauseBtn.textContent = isAnimating ? '⏸ 一時停止' : '▶ 再生';
+        function reset() {
+            nodes.length = 0;
+            links.length = 0;
+            nodeByWord.clear();
+            linkByKey.clear();
+            currentNodes.clear();
+            corpus.forEach(u => { u.seen = 0; });
+            random = mulberry32(SEED);
+            current = null;
+            phase = -1;
+            utterCount = entrenchedCount = maxFreq = maxCount = 0;
+            hoverNode = dragNode = null;
+            tickAcc = TICK_MS;   // first word right away
+            $('tickerNo').textContent = '入力';
+            $('tickerText').textContent = '…';
+            $('tickerCount').textContent = '';
+            updateStats();
+            updatePhase();
+            setPaused(false);
+        }
+
+        pauseBtn.addEventListener('click', () => setPaused(!paused));
+        $('resetBtn').addEventListener('click', reset);
+        $('speedGroup').addEventListener('click', e => {
+            const btn = e.target.closest('button[data-speed]');
+            if (!btn) return;
+            speed = Number(btn.dataset.speed);
+            $('speedGroup').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === btn));
         });
 
-        document.getElementById('resetBtn').addEventListener('click', () => {
-            nodes = []; links = []; groupIndex = 0; wordIndex = 0;
-            patternsFound = 0; lastAddTime = 0;
-            updateStats(); updatePhaseText();
-            if (!isAnimating) {
-                isAnimating = true;
-                pauseBtn.textContent = '⏸ 一時停止';
-            }
-        });
+        $('legend').prepend(...CATEGORIES.map(c => {
+            const item = el('span', '');
+            item.className = 'item';
+            item.append(dotEl(c.color), c.name);
+            return item;
+        }));
 
-        speedBtn.addEventListener('click', () => {
-            if (speed === 1) { speed = 3; speedBtn.textContent = '3× 高速'; }
-            else if (speed === 3) { speed = 0.5; speedBtn.textContent = '½× 低速'; }
-            else { speed = 1; speedBtn.textContent = '1× 通常'; }
-        });
-
-        // Init
-        window.addEventListener('resize', resize);
+        // --- Init: start only once the stage scrolls into view (the iframe sits deep in the lecture page) ---
         resize();
-        requestAnimationFrame(animate);
+        reset();
+        new ResizeObserver(resize).observe(stage);
+        new IntersectionObserver(([entry]) => {
+            if (entry.intersectionRatio >= 0.25) { inView = true; wake(); }
+            else if (!entry.isIntersecting) inView = false;
+        }, { threshold: [0, 0.3] }).observe(stage);
     })();
     </script>
 </body>
